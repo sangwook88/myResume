@@ -5,7 +5,7 @@ description: 막연한 아이디어를 거시 목표로 빚는 스킬(기획 전
 
 # brainstorm — 거시 목표 빚기 (기획 전단 1단계)
 
-막연한 아이디어를 *프로젝트 값을 짓지 않고* **거시 목표**로 빚는다. 세세한 도메인 분할·명세는 안 한다 — "무엇을 / 왜 / 누구를 위해 / 핵심 기능"까지. 프레이밍 → 리서치 디스패치(서브에이전트) → 종합·구체화 → 브리프. 규약: [docs/conventions.md](.claude/docs/conventions.md). 산출: `docs/brainstorming/<topic>-research.md`(리서치 노트) + `docs/brainstorming/<topic>-brief.md`(설계 브리프).
+막연한 아이디어를 *프로젝트 값을 짓지 않고* **거시 목표**로 빚는다. 세세한 도메인 분할·명세는 안 한다 — "무엇을 / 왜 / 누구를 위해 / 핵심 기능"까지. 프레이밍 → 리서치 디스패치(서브에이전트) → 종합·구체화 → 브리프. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md). 산출: `docs/brainstorming/<topic>-research.md`(리서치 노트) + `docs/brainstorming/<topic>-brief.md`(설계 브리프).
 
 ## 이 단계가 답하는 것 (거시 목표)
 - **문제·가치·경험** — 어떤 문제를 풀고, 어떤 가치를 만들고, 어떤 경험을 선사하나.

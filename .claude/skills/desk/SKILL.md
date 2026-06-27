@@ -5,7 +5,7 @@ description: 기획 전단의 "비서" — 사용자가 무슨 말을 하면 프
 
 # desk — 기획 전단 라우터 (비서)
 
-기획 전단 7단계의 **진입점·안내데스크**. 사용자 발화 + 프로젝트 상태를 보고 **지금 단계**를 판정해 해당 단계 스킬로 인계한다. 규약: [docs/conventions.md](.claude/docs/conventions.md).
+기획 전단 7단계의 **진입점·안내데스크**. 사용자 발화 + 프로젝트 상태를 보고 **지금 단계**를 판정해 해당 단계 스킬로 인계한다. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md).
 
 ## 절대 규칙
 1. **단계 작업을 직접 하지 않는다.** 분할·명세·티켓 등은 해당 스킬로 인계. 데스크는 판정·안내만.
@@ -34,7 +34,7 @@ description: 기획 전단의 "비서" — 사용자가 무슨 말을 하면 프
 | 가지쳤고 QA 안 함 | ⑥ HTML 기획 QA | [qa](../qa/SKILL.md) |
 | QA 끝났고 ARCHITECTURE 없음 | ⑦ 기술·구조 결정 | [arch](../arch/SKILL.md) |
 | 아키텍처 확정 후 티켓 없음 | ⑧ 구현 티켓 | [ticket](../ticket/SKILL.md) |
-| 티켓 검수 끝 | (현재 버전 전단 종료) | `pwsh ".claude/scripts/implement.ps1" -Side <be\|fe> -Ticket …` (기존 구현) |
+| 티켓 검수 끝 | (현재 버전 전단 종료) | `pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side <be\|fe> -Ticket …` (기존 구현) |
 
 ④ 구체화는 FE·BE 두 축을 함께 진행(보통 FE 플로우 먼저 → 그 FE가 부르는 BE). 한 축만 막혔으면 그 축 스킬로. 단계는 모두 roadmap의 **현재 타깃 버전** 범위 안에서 돈다 — 그 버전을 다 출시했으면 roadmap에서 타깃을 다음 버전으로 올린 뒤 ③부터 다시.
 

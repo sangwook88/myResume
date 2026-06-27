@@ -5,7 +5,7 @@ description: 브레인스토밍 거시 목표를 받치기 위해 아이디어 1
 
 # research — 한 트랙 시장·자원 조사 (기획 전단, brainstorm 보조)
 
-아이디어 1개의 **한 관심사 트랙**을 웹으로 조사해 **출처 단 사실만** 모아 보고하는 콜드 스타트 서브에이전트. 직접 기획·구현하지 않고, 파일도 쓰지 않는다 — 보고를 최종 메시지로 돌려주면 brainstorm이 종합한다. 규약: [docs/conventions.md](.claude/docs/conventions.md).
+아이디어 1개의 **한 관심사 트랙**을 웹으로 조사해 **출처 단 사실만** 모아 보고하는 콜드 스타트 서브에이전트. 직접 기획·구현하지 않고, 파일도 쓰지 않는다 — 보고를 최종 메시지로 돌려주면 brainstorm이 종합한다. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md).
 
 ## 입력 계약
 - **트랙 1개** — 디스패치 측(brainstorm)이 셋 중 하나를 명시:

@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 데모 — fe/chat (챗봇 패널)</title>
+<!--
+  qa 충실 UI 데모 — fe/chat.
+  입력: docs/fe/chat/{플로우.md, 요소/챗봇-열림.md, 요소/질문-응답.md} + templates/sim.html
+  fe/browse 위에 뜨는 챗봇 패널(우하단 FAB로 열림). 데스크톱=우하단 패널 / 모바일=전체화면.
+  상태 2개: 챗봇열림(제안 질문 + 입력창) / 질문응답(말풍선 멀티턴 + 근거 링크, 스트리밍).
+  진입 맥락 토글: 포인트 맥락 / 무맥락 → 제안 질문이 달라짐.
+  텍스트·데이터는 모두 [예시]. 미결·gap·BE-todo 비노출.
+-->
+<style>
+  *{box-sizing:border-box}
+  body{font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;color:#1a1a1a;background:#e9ecf1}
+
+  /* ===== fe/browse 배경(컨텍스트만, 클릭 비활성) ===== */
+  .browse-bg{min-height:100vh;padding:28px 20px;filter:saturate(.9)}
+  .browse-bg .topbar{display:flex;justify-content:space-between;align-items:center;max-width:880px;margin:0 auto 18px}
+  .browse-bg .brand{font-weight:700;font-size:18px;color:#2b3a55}
+  .browse-bg .grid{max-width:880px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .browse-bg .pcard{background:#fff;border:1px solid #dfe3ea;border-radius:12px;padding:16px;opacity:.75}
+  .browse-bg .pcard h3{margin:.1em 0 .4em;font-size:15px}
+  .browse-bg .pcard p{margin:0;color:#667;font-size:13px}
+  .browse-note{max-width:880px;margin:0 auto 14px;font-size:12px;color:#8893a5}
+
+  /* ===== 데모 컨트롤(데모 전용, 화면 일부 아님) ===== */
+  .demo-ctl{position:fixed;left:14px;top:14px;z-index:60;background:#1e2533;color:#cfe;border-radius:10px;
+    padding:10px 12px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:230px}
+  .demo-ctl b{color:#fff}
+  .demo-ctl .seg{display:flex;gap:6px;margin-top:6px}
+  .demo-ctl .seg button{flex:1;background:#2a3344;color:#cdd6e6;
+    border:1px solid #3a4459;border-radius:7px;padding:6px 4px;font-size:11px;cursor:pointer}
+  .demo-ctl .seg button.on{background:#2f6fed;border-color:#2f6fed;color:#fff;font-weight:700}
+  .demo-ctl small{display:block;margin-top:6px;color:#8da0c0;line-height:1.4}
+
+  /* ===== 전역 FAB (fe/browse 소유 진입구 — 데모상 상시 노출) ===== */
+  .fab{position:fixed;right:22px;bottom:22px;z-index:40;width:58px;height:58px;border-radius:50%;
+    border:none;background:#2f6fed;color:#fff;font-size:26px;cursor:pointer;
+    box-shadow:0 6px 20px rgba(47,111,237,.45);transition:transform .12s}
+  .fab:hover{transform:scale(1.06)}
+  .fab[hidden]{display:none}
+
+  /* ===== 챗봇 패널 (데스크톱=우하단 패널) ===== */
+  .panel{position:fixed;right:22px;bottom:22px;z-index:50;width:380px;height:560px;max-height:calc(100vh - 44px);
+    background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(20,30,60,.32);
+    display:none;flex-direction:column;overflow:hidden;border:1px solid #d8deea}
+  .panel.open{display:flex}
+
+  .ph{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #eef1f5;background:#f8fafd}
+  .ph .dot{width:9px;height:9px;border-radius:50%;background:#22c07a}
+  .ph .ttl{font-weight:700;font-size:14px}
+  .ph .ctx{font-size:11px;color:#5a7;background:#e7f7ee;border-radius:20px;padding:2px 9px}
+  .ph .ctx.none{color:#778;background:#eef0f4}
+  .ph .x{margin-left:auto;border:none;background:none;font-size:20px;cursor:pointer;color:#889;line-height:1;padding:2px 6px}
+  .ph .x:hover{color:#333}
+
+  /* 대화 로그 영역 */
+  .log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:#fbfcfe}
+  .empty{margin:auto;text-align:center;color:#94a0b3;font-size:13px;padding:20px}
+  .empty .big{font-size:30px;display:block;margin-bottom:8px}
+
+  .bubble{max-width:84%;padding:10px 13px;border-radius:14px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+  .bubble.me{align-self:flex-end;background:#2f6fed;color:#fff;border-bottom-right-radius:4px}
+  .bubble.bot{align-self:flex-start;background:#fff;border:1px solid #e6eaf1;border-bottom-left-radius:4px}
+
+  /* 근거 링크 목록 */
+  .evi{margin-top:9px;border-top:1px dashed #e2e7ef;padding-top:8px}
+  .evi .lbl{font-size:11px;color:#8893a5;font-weight:700;letter-spacing:.02em;margin-bottom:5px}
+  .evi a{display:flex;align-items:center;gap:7px;font-size:12px;color:#2256c6;text-decoration:none;
+    padding:5px 8px;border:1px solid #e0e7f3;border-radius:8px;margin:4px 0;background:#f5f8ff}
+  .evi a:hover{background:#e8f0ff;border-color:#b8cdf3}
+  .evi a .tag{font-size:10px;font-weight:700;color:#fff;background:#5b7cc9;border-radius:5px;padding:1px 6px;flex:none}
+  .evi a .tag.commit{background:#6e7781}.evi a .tag.pr{background:#8250df}.evi a .tag.swagger{background:#3a9b6b}
+  .evi a .ext{margin-left:auto;color:#9aa7bd;font-size:11px}
+
+  /* 로딩 인디케이터 */
+  .typing{align-self:flex-start;background:#fff;border:1px solid #e6eaf1;border-radius:14px;border-bottom-left-radius:4px;
+    padding:12px 15px;display:none}
+  .typing.on{display:flex;gap:5px}
+  .typing span{width:7px;height:7px;border-radius:50%;background:#b6c0d1;animation:blink 1.2s infinite both}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+  /* 제안 질문 칩 */
+  .chips{padding:10px 14px 4px;display:flex;flex-wrap:wrap;gap:7px;border-top:1px solid #f0f2f6;background:#fff}
+  .chips .chlbl{flex-basis:100%;font-size:11px;color:#8893a5;margin-bottom:2px}
+  .chip{border:1px solid #cfdcf3;background:#f4f8ff;color:#2256c6;border-radius:18px;padding:6px 12px;
+    font-size:12.5px;cursor:pointer}
+  .chip:hover{background:#e6efff}
+
+  /* 입력창 */
+  .inputbar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #eef1f5;background:#fff}
+  .inputbar input{flex:1;border:1px solid #d3dae6;border-radius:22px;padding:9px 14px;font-size:14px;outline:none}
+  .inputbar input:focus{border-color:#2f6fed;box-shadow:0 0 0 3px rgba(47,111,237,.12)}
+  .inputbar button{border:none;background:#2f6fed;color:#fff;border-radius:50%;width:40px;height:40px;
+    font-size:17px;cursor:pointer;flex:none}
+  .inputbar button:disabled{background:#b9c6dd;cursor:default}
+
+  .ex{color:#0a8a5f}
+
+  /* 모바일 = 전체화면 */
+  @media (max-width:480px){
+    .panel.open{right:0;bottom:0;width:100vw;height:100vh;max-height:100vh;border-radius:0;border:none}
+    .fab{right:16px;bottom:16px}
+    .demo-ctl{max-width:none;left:8px;right:8px;top:8px}
+  }
+</style></head>
+<body>
+
+<!-- ===== 배경: fe/browse (컨텍스트만, 본 도메인 아님) ===== -->
+<div class="browse-bg" aria-hidden="true">
+  <div class="topbar"><span class="brand">[예시] 근거기반 포트폴리오</span></div>
+  <div class="browse-note">↑ 배경은 fe/browse(진입구 소유) — 이 데모의 대상이 아니라 맥락 표시용. 우하단 FAB를 눌러 챗봇을 연다.</div>
+  <div class="grid">
+    <div class="pcard"><h3>[예시] 결제 멱등키 도입</h3><p>[예시] 중복 결제 방지를 위한 멱등성 처리</p></div>
+    <div class="pcard"><h3>[예시] 검색 색인 재구성</h3><p>[예시] 응답 지연 1.8s→320ms 개선</p></div>
+    <div class="pcard"><h3>[예시] 인증 토큰 만료 정책</h3><p>[예시] 세션 TTL/리프레시 설계</p></div>
+    <div class="pcard"><h3>[예시] 장애 대응 회고</h3><p>[예시] 무중단 배포 롤백 절차</p></div>
+  </div>
+</div>
+
+<!-- ===== 데모 컨트롤(데모 전용) ===== -->
+<div class="demo-ctl">
+  <b>데모 컨트롤</b> · 진입 맥락
+  <div class="seg">
+    <button id="ctxPoint" class="on" onclick="setCtx('point')">포인트 맥락</button>
+    <button id="ctxNone" onclick="setCtx('none')">무맥락</button>
+  </div>
+  <small>맥락에 따라 챗봇 열 때 제안 질문이 달라집니다. FAB로 열고 Esc로 닫기.</small>
+</div>
+
+<!-- ===== 전역 FAB (열기 진입구) ===== -->
+<button class="fab" id="fab" title="챗봇 열기" onclick="openPanel()">💬</button>
+
+<!-- ===== 챗봇 패널 ===== -->
+<div class="panel" id="panel" role="dialog" aria-label="포트폴리오 챗봇" aria-modal="false">
+  <div class="ph">
+    <span class="dot"></span>
+    <span class="ttl">[예시] 포트폴리오 챗봇</span>
+    <span class="ctx" id="ctxBadge">맥락: [예시] 결제 멱등키 도입</span>
+    <button class="x" title="닫기 (Esc)" onclick="closePanel()" aria-label="닫기">×</button>
+  </div>
+
+  <!-- 대화 로그 (role=log, aria-live) -->
+  <div class="log" id="log" role="log" aria-live="polite">
+    <div class="empty" id="empty">
+      <span class="big">💬</span>
+      [예시] 이 포트폴리오에 대해 무엇이든 물어보세요.<br>답변에는 근거(커밋·PR·Swagger)가 함께 표시됩니다.
+    </div>
+    <div class="typing" id="typing" aria-hidden="true"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- 제안 질문 칩 (맥락별로 채워짐) -->
+  <div class="chips" id="chips"></div>
+
+  <!-- 입력창 -->
+  <form class="inputbar" id="form" onsubmit="return submitQ(event)">
+    <input id="q" type="text" placeholder="[예시] 질문을 입력하세요…" autocomplete="off" aria-label="질문 입력">
+    <button id="send" type="submit" title="전송" aria-label="전송">➤</button>
+  </form>
+</div>
+
+<script>
+/* ---- 진입 맥락 상태 ---- */
+var ctx = 'point'; // 'point' | 'none'
+
+/* 맥락별 제안 질문(요소/챗봇-열림: 하이브리드 3~4개). 모두 [예시]. */
+var SUGGEST = {
+  point: {
+    label: '관련 질문 · [예시] 결제 멱등키 도입',
+    items: [
+      '[예시] 이 작업에서 멱등키를 어떻게 설계했나요?',
+      '[예시] 중복 결제는 실제로 얼마나 줄었나요?',
+      '[예시] 관련 PR과 커밋을 보여주세요'
+    ]
+  },
+  none: {
+    label: '추천 질문',
+    items: [
+      '[예시] 어떤 프로젝트들을 진행했나요?',
+      '[예시] 가장 어려웠던 기술 문제는?',
+      '[예시] 백엔드 경험을 요약해 주세요',
+      '[예시] 성능을 개선한 사례가 있나요?'
+    ]
+  }
+};
+
+/* [예시] 답변 + 근거. 데모는 정적 한 종류를 스트리밍처럼 표시(BE 응답 자리). */
+var DEMO_ANSWER =
+  '[예시] 결제 중복을 막기 위해 요청마다 멱등키(Idempotency-Key)를 발급하고, 동일 키의 재요청은 ' +
+  '최초 처리 결과를 그대로 반환하도록 했습니다. 키는 24시간 보관 후 만료되며, 충돌 시 409로 응답합니다. ' +
+  '도입 후 중복 결제 건이 [예시] 月 12건 → 0건으로 줄었습니다.';
+var DEMO_EVIDENCE = [
+  {tag:'commit', cls:'commit', text:'[예시] feat: add idempotency-key to /payments (a1b2c3d)'},
+  {tag:'PR',     cls:'pr',     text:'[예시] PR #142 결제 멱등성 처리 도입'},
+  {tag:'Swagger',cls:'swagger',text:'[예시] POST /payments — Idempotency-Key 파라미터'}
+];
+
+var EXT_URL = 'https://example.com/evidence'; // [예시] 외부 근거 — 새 탭 이탈
+var busy = false;
+
+/* ---- 맥락 토글(데모 컨트롤) ---- */
+function setCtx(c){
+  ctx = c;
+  document.getElementById('ctxPoint').classList.toggle('on', c==='point');
+  document.getElementById('ctxNone').classList.toggle('on', c==='none');
+  var badge = document.getElementById('ctxBadge');
+  if(c==='point'){ badge.textContent='맥락: [예시] 결제 멱등키 도입'; badge.className='ctx'; }
+  else { badge.textContent='맥락: 전역(무맥락)'; badge.className='ctx none'; }
+  renderChips();
+}
+
+/* ---- 제안 질문 칩 렌더 ---- */
+function renderChips(){
+  var s = SUGGEST[ctx], box = document.getElementById('chips');
+  var html = '<div class="chlbl">'+s.label+'</div>';
+  s.items.forEach(function(t){
+    html += '<button type="button" class="chip" onclick="ask(this.dataset.q)" data-q="'+
+            t.replace(/"/g,'&quot;')+'">'+t+'</button>';
+  });
+  box.innerHTML = html;
+}
+
+/* ---- 패널 열기 (챗봇열림 상태) ---- */
+function openPanel(){
+  renderChips();
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('fab').hidden = true;
+  // 열릴 때 입력 필드로 포커스 (요소/챗봇-열림 · 플로우 접근성)
+  setTimeout(function(){ document.getElementById('q').focus(); }, 30);
+}
+
+/* ---- 닫기 → fe/browse 복귀, FAB로 포커스 복귀 ---- */
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  var fab = document.getElementById('fab');
+  fab.hidden = false;
+  fab.focus();
+}
+
+/* ---- Esc 닫기 ---- */
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && document.getElementById('panel').classList.contains('open')) closePanel();
+});
+
+/* ---- 입력창 전송 (챗봇열림→질문응답 / 질문응답→질문응답) ---- */
+function submitQ(e){
+  e.preventDefault();
+  var input = document.getElementById('q');
+  var t = input.value.trim();
+  if(!t || busy) return false;
+  input.value='';
+  ask(t);
+  return false;
+}
+
+/* ---- 질문 → 응답(스트리밍 연출) : 멀티턴 이력 누적 ---- */
+function ask(text){
+  if(busy) return;
+  // 빈 상태 제거(첫 질문)
+  var empty = document.getElementById('empty');
+  if(empty) empty.remove();
+  // 제안 칩은 첫 질문 후 숨김(이후엔 입력으로 이어 질문)
+  document.getElementById('chips').style.display='none';
+
+  // 내 말풍선
+  addBubble('me', text);
+
+  // 로딩 인디케이터
+  busy = true;
+  document.getElementById('send').disabled = true;
+  var typing = document.getElementById('typing');
+  typing.classList.add('on');
+  scrollLog();
+
+  // 스트리밍(토큰 점진) 연출
+  setTimeout(function(){
+    typing.classList.remove('on');
+    streamBot(DEMO_ANSWER, DEMO_EVIDENCE);
+  }, 700);
+}
+
+function addBubble(who, text){
+  var log = document.getElementById('log');
+  var b = document.createElement('div');
+  b.className = 'bubble '+who;
+  b.textContent = text;
+  log.insertBefore(b, document.getElementById('typing'));
+  scrollLog();
+  return b;
+}
+
+/* 봇 답변을 토큰 점진으로 채우고, 끝나면 근거 링크 목록 추가 */
+function streamBot(answer, evidence){
+  var b = addBubble('bot', '');
+  var tokens = answer.split(/(\s+)/); // 공백 단위 토큰
+  var i = 0;
+  var timer = setInterval(function(){
+    if(i < tokens.length){
+      b.textContent += tokens[i++];
+      scrollLog();
+    } else {
+      clearInterval(timer);
+      appendEvidence(b, evidence);
+      busy = false;
+      document.getElementById('send').disabled = false;
+      document.getElementById('q').focus();
+      scrollLog();
+    }
+  }, 38);
+}
+
+/* 근거 링크 목록(커밋/PR/Swagger) — 새 탭 이탈 = 외부근거 전이 */
+function appendEvidence(bubble, evidence){
+  var wrap = document.createElement('div');
+  wrap.className = 'evi';
+  var h = '<div class="lbl">근거</div>';
+  evidence.forEach(function(e){
+    h += '<a href="'+EXT_URL+'" target="_blank" rel="noopener noreferrer">'+
+         '<span class="tag '+e.cls+'">'+e.tag+'</span>'+e.text+
+         '<span class="ext">새 탭 ↗</span></a>';
+  });
+  wrap.innerHTML = h;
+  bubble.appendChild(wrap);
+}
+
+function scrollLog(){
+  var log = document.getElementById('log');
+  log.scrollTop = log.scrollHeight;
+}
+
+/* 초기 렌더 */
+renderChips();
+</script>
+</body></html>

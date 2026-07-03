@@ -2,7 +2,7 @@
 kind: fe
 status: in-progress
 pattern:
-depends: [be/point, be/chat]
+depends: [be/project, be/point, be/chat]
 # --- implement.ps1 헤드리스 백엔드용 (선택, Agent 병렬이면 비워둬도 됨) ---
 branch: feat/fe-browse
 base: main
@@ -25,5 +25,6 @@ engine: codex
 ## 책임지지 않는 것
 - **챗봇 대화 자체** — fe/chat 도메인. 여기선 전역 FAB로 *진입구*만 연다.
 - **포인트 데이터 모델·발행 status·로드** — be/point. 여기선 호출(링크)만.
+- **프로젝트 인덱스(표지) 데이터·프로젝트 목록** — be/project. 여기선 호출(링크)만.
 - **챗봇 응답 엔진(load-all·근거 인용)** — be/chat.
 - **인라인 텍스트 선택-질문** — v3로 연기(로드맵). v1 진입점은 전역 FAB 단독.

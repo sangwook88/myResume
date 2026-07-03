@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>UI 데모 — fe/browse</title>
+<!--
+  qa 충실 UI 데모: fe/browse (랜딩 → 프로젝트 인덱스 → 포폴 포인트 상세 + 전역 챗봇 FAB).
+  실제 화면 배치를 그대로 재현. 텍스트·데이터만 임시([예시]).
+  화면 전이는 플로우.md에 그려진 것만:
+    랜딩 →(프로젝트 선택) 프로젝트인덱스 / 랜딩 →(추천 포인트) 포인트상세
+    프로젝트인덱스 →(포인트 선택) 포인트상세
+    포인트상세 →(다른 포인트) 포인트상세 / →(Evidence) 외부 새 탭 / →(뒤로) 프로젝트인덱스
+    전역 FAB → fe/chat 진입(본 도메인은 진입구만 소유)
+-->
+<style>
+  *{box-sizing:border-box} body{font:15px/1.6 system-ui,sans-serif;margin:0;color:#1a1a1a;background:#f0f1f3}
+  .device{max-width:480px;margin:24px auto;background:#fff;min-height:86vh;position:relative;
+    border-radius:18px;box-shadow:0 6px 30px rgba(0,0,0,.12);overflow:hidden}
+  .screen{display:none;padding:18px 18px 90px} .screen.active{display:block}
+  .ex{color:#0a7;font-style:normal}
+  h1{font-size:22px;margin:.1em 0 .1em} h2{font-size:18px;margin:1.1em 0 .5em}
+  h3{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#6a6f78;margin:1.4em 0 .4em}
+  .sub{color:#6a6f78;font-size:13px;margin:0 0 1em}
+  .section-label{font-size:13px;font-weight:600;color:#2f6fed;margin:18px 0 8px;border-top:1px solid #eef0f3;padding-top:14px}
+  .card{border:1px solid #e3e5e8;border-radius:10px;padding:12px 14px;margin:8px 0;cursor:pointer;transition:.12s}
+  .card:hover{background:#f6faff;border-color:#9cc4ff;transform:translateY(-1px)}
+  .card .t{font-weight:600} .card .m{color:#6a6f78;font-size:13px}
+  .tag{display:inline-block;background:#eef3ff;color:#2f6fed;border-radius:99px;padding:1px 9px;font-size:12px;margin:2px 4px 2px 0}
+  .topbar{display:flex;align-items:center;gap:10px;margin:-2px 0 12px;color:#6a6f78;font-size:13px}
+  .back{border:none;background:#eef0f3;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+  .back:hover{background:#e1e5ea}
+  .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:6px 0}
+  .meta dt{color:#6a6f78} .meta dd{margin:0}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0}
+  th,td{border:1px solid #e3e5e8;padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#f6f7f9} td.pick{font-weight:600;color:#0a7;text-align:center}
+  .evi{display:flex;align-items:center;gap:8px;border:1px solid #e3e5e8;border-radius:8px;
+    padding:9px 12px;margin:6px 0;cursor:pointer;text-decoration:none;color:#1a1a1a}
+  .evi:hover{background:#f6faff;border-color:#9cc4ff}
+  .evi .kind{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px}
+  .evi .commit{background:#e8f0fe;color:#1a56db} .evi .pr{background:#eafbea;color:#1b7a2b} .evi .swagger{background:#fef0e2;color:#b5560a}
+  .evi .ext{margin-left:auto;color:#9aa0a8}
+  .archbox{border:1px dashed #c5cad1;border-radius:8px;padding:14px;text-align:center;color:#6a6f78;font-size:13px;margin:6px 0}
+  .fab{position:absolute;right:16px;bottom:18px;width:56px;height:56px;border-radius:50%;
+    border:none;background:#2f6fed;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(47,111,237,.4);z-index:50}
+  .fab:hover{background:#2257c9}
+  .ptlist .card{display:flex;justify-content:space-between;align-items:center}
+</style></head>
+<body>
+<div class="device" id="app">
+
+  <!-- ========================= 랜딩 ========================= -->
+  <section class="screen active" data-screen="랜딩">
+    <h1>나의 포트폴리오 <span class="ex">[예시]</span></h1>
+    <p class="sub"><span class="ex">[예시] 근거기반 포트폴리오 — 결정마다 커밋·PR·Swagger로 검증 가능</span></p>
+
+    <div class="section-label">추천 포폴 포인트</div>
+    <div class="card" onclick="go('포인트상세')">
+      <div class="t"><span class="ex">[예시] 결제 멱등성 키로 중복 청구 0건 달성</span></div>
+      <div class="m"><span class="tag"><span class="ex">결제</span></span><span class="tag"><span class="ex">신뢰성</span></span><span class="ex">· payments 프로젝트</span></div>
+    </div>
+    <div class="card" onclick="go('포인트상세')">
+      <div class="t"><span class="ex">[예시] 조회 캐싱으로 p95 응답 820ms → 140ms</span></div>
+      <div class="m"><span class="tag"><span class="ex">성능</span></span><span class="tag"><span class="ex">캐시</span></span><span class="ex">· payments 프로젝트</span></div>
+    </div>
+    <div class="card" onclick="go('포인트상세')">
+      <div class="t"><span class="ex">[예시] 이벤트 기반 알림 파이프라인 재설계</span></div>
+      <div class="m"><span class="tag"><span class="ex">아키텍처</span></span><span class="ex">· notify 프로젝트</span></div>
+    </div>
+
+    <div class="section-label">프로젝트</div>
+    <div class="card" onclick="go('프로젝트인덱스')">
+      <div class="t"><span class="ex">[예시] payments — 결제 도메인 백엔드</span></div>
+      <div class="m"><span class="ex">[예시] 포인트 6개 · 2025</span></div>
+    </div>
+    <div class="card" onclick="go('프로젝트인덱스')">
+      <div class="t"><span class="ex">[예시] notify — 알림 플랫폼</span></div>
+      <div class="m"><span class="ex">[예시] 포인트 3개 · 2024</span></div>
+    </div>
+  </section>
+
+  <!-- ===================== 프로젝트 인덱스 ===================== -->
+  <section class="screen" data-screen="프로젝트인덱스">
+    <div class="topbar">
+      <button class="back" onclick="go('랜딩')">← 랜딩</button>
+      <span><span class="ex">[예시] payments</span></span>
+    </div>
+    <h1><span class="ex">[예시] payments</span></h1>
+    <p class="sub"><span class="ex">[예시] 결제 요청·승인·정산을 담당하는 백엔드 서비스. 일 30만 건 트랜잭션 처리.</span></p>
+
+    <h3>역할 / 기간 / 팀</h3>
+    <dl class="meta">
+      <dt>역할</dt><dd><span class="ex">[예시] 백엔드 리드</span></dd>
+      <dt>기간</dt><dd><span class="ex">[예시] 2025.01 – 2025.09</span></dd>
+      <dt>팀 규모</dt><dd><span class="ex">[예시] 5명 (BE 3 · FE 1 · QA 1)</span></dd>
+    </dl>
+
+    <h3>기술 스택</h3>
+    <div>
+      <span class="tag"><span class="ex">Kotlin</span></span><span class="tag"><span class="ex">Spring Boot</span></span>
+      <span class="tag"><span class="ex">PostgreSQL</span></span><span class="tag"><span class="ex">Redis</span></span><span class="tag"><span class="ex">Kafka</span></span>
+    </div>
+
+    <h3>아키텍처 개요</h3>
+    <div class="archbox"><span class="ex">[예시] 아키텍처 개요 — 다이어그램/텍스트 영역</span></div>
+
+    <h3>핵심 성과</h3>
+    <ul>
+      <li><span class="ex">[예시] 중복 청구 분쟁 0건 유지</span></li>
+      <li><span class="ex">[예시] 조회 API p95 140ms</span></li>
+    </ul>
+
+    <h3>포폴 포인트 목록 (published)</h3>
+    <div class="ptlist">
+      <div class="card" onclick="go('포인트상세')">
+        <span class="t"><span class="ex">[예시] 결제 멱등성 키로 중복 청구 0건 달성</span></span>
+        <span class="m">›</span>
+      </div>
+      <div class="card" onclick="go('포인트상세')">
+        <span class="t"><span class="ex">[예시] 조회 캐싱으로 p95 820ms → 140ms</span></span>
+        <span class="m">›</span>
+      </div>
+      <div class="card" onclick="go('포인트상세')">
+        <span class="t"><span class="ex">[예시] DB 커넥션 풀 튜닝으로 피크 타임 안정화</span></span>
+        <span class="m">›</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 포폴 포인트 상세 ===================== -->
+  <section class="screen" data-screen="포인트상세">
+    <div class="topbar">
+      <button class="back" onclick="go('프로젝트인덱스')">← 프로젝트 인덱스</button>
+      <span><span class="ex">[예시] payments</span></span>
+    </div>
+
+    <!-- 1. 제목·요약 -->
+    <h1><span class="ex">[예시] 결제 멱등성 키로 중복 청구 0건 달성</span></h1>
+    <div>
+      <span class="tag"><span class="ex">결제</span></span><span class="tag"><span class="ex">신뢰성</span></span><span class="tag"><span class="ex">멱등성</span></span>
+    </div>
+    <p class="sub"><span class="ex">[예시] 네트워크 재시도로 인한 중복 결제를 멱등성 키 설계로 차단해 청구 분쟁을 제거한 결정.</span></p>
+
+    <div class="section-label">배경</div>
+    <p><span class="ex">[예시] 결제 승인 API가 클라이언트 재시도 시 동일 요청을 두 번 처리, 월 평균 12건 중복 청구 분쟁 발생.</span></p>
+
+    <div class="section-label">문제</div>
+    <p><span class="ex">[예시] 동일 결제 의도를 한 번만 반영해야 하나, 분산 환경에서 요청 단위 중복 제거 기준이 없었다.</span></p>
+
+    <div class="section-label">고려한 옵션</div>
+    <table>
+      <thead><tr><th>옵션</th><th>장점</th><th>단점</th><th>비용/리스크</th><th>채택</th></tr></thead>
+      <tbody>
+        <tr><td><span class="ex">[예시] DB 유니크 제약만</span></td><td><span class="ex">단순</span></td><td><span class="ex">재시도 응답 불명확</span></td><td><span class="ex">낮음</span></td><td class="pick"></td></tr>
+        <tr><td><span class="ex">[예시] 멱등성 키 + 결과 캐시</span></td><td><span class="ex">재시도 안전·응답 일관</span></td><td><span class="ex">키 저장소 필요</span></td><td><span class="ex">중간</span></td><td class="pick">●</td></tr>
+        <tr><td><span class="ex">[예시] 분산 락</span></td><td><span class="ex">강한 직렬화</span></td><td><span class="ex">지연·복잡도 증가</span></td><td><span class="ex">높음</span></td><td class="pick"></td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-label">결정과 근거</div>
+    <p><span class="ex">[예시] 멱등성 키(Idempotency-Key) + Redis 결과 캐시 채택. 재시도 시 캐시된 응답을 그대로 반환해 부작용 없는 멱등을 보장.</span></p>
+
+    <div class="section-label">실행</div>
+    <p><span class="ex">[예시] 결제 진입점에 키 미들웨어 도입, 24h TTL 결과 저장, 키 충돌 시 409 반환. 단계적 롤아웃.</span></p>
+
+    <div class="section-label">결과</div>
+    <ul>
+      <li><span class="ex">[예시] 중복 청구 분쟁 월 12건 → 0건</span></li>
+      <li><span class="ex">[예시] 재시도 응답 일관성 100%</span></li>
+    </ul>
+
+    <div class="section-label">회고</div>
+    <p><span class="ex">[예시] 키 생성 책임을 클라이언트에 둔 점이 초기 혼선. 다음엔 SDK 차원 기본 제공 고려.</span></p>
+
+    <div class="section-label">Evidence (근거 — 클릭 검증)</div>
+    <a class="evi" href="https://example.com/commit/abc123" target="_blank" rel="noopener">
+      <span class="kind commit">COMMIT</span><span class="ex">[예시] feat: add idempotency key middleware</span><span class="ext">↗</span>
+    </a>
+    <a class="evi" href="https://example.com/pull/42" target="_blank" rel="noopener">
+      <span class="kind pr">PR</span><span class="ex">[예시] #42 결제 멱등성 도입</span><span class="ext">↗</span>
+    </a>
+    <a class="evi" href="https://example.com/swagger" target="_blank" rel="noopener">
+      <span class="kind swagger">SWAGGER</span><span class="ex">[예시] POST /payments — Idempotency-Key 헤더 스펙</span><span class="ext">↗</span>
+    </a>
+
+    <div class="section-label">같은 프로젝트의 다른 포인트</div>
+    <div class="ptlist">
+      <div class="card" onclick="go('포인트상세')">
+        <span class="t"><span class="ex">[예시] 조회 캐싱으로 p95 820ms → 140ms</span></span><span class="m">›</span>
+      </div>
+      <div class="card" onclick="go('포인트상세')">
+        <span class="t"><span class="ex">[예시] DB 커넥션 풀 튜닝으로 피크 타임 안정화</span></span><span class="m">›</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 전역 요소: 챗봇 FAB (상시) ===================== -->
+  <button class="fab" title="챗봇 열기 (fe/chat 진입)" onclick="openChat()">💬</button>
+
+</div>
+
+<script>
+function go(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const t=document.querySelector('.screen[data-screen="'+screen+'"]');
+  if(t){ t.classList.add('active'); window.scrollTo(0,0); }
+  else alert('플로우에 없는 전이: '+screen+' → 누락 후보(plan-fe로 돌릴 것)');
+}
+function openChat(){
+  // 본 도메인(fe/browse)은 진입구만 소유 — 대화는 fe/chat 도메인.
+  const cur = document.querySelector('.screen.active').dataset.screen;
+  const ctx = (cur === '포인트상세') ? '현재 포인트 id를 맥락으로 전달' : '무맥락 전역 진입';
+  alert('전역 FAB → fe/chat 진입\n(' + ctx + ')\n\n대화 화면은 fe/chat 도메인 소관 — 본 데모 범위 밖.');
+}
+</script>
+</body></html>

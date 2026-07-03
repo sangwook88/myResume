@@ -1,13 +1,13 @@
 ---
 name: ticket
-description: QA와 아키텍처가 끝난 도메인을 콜드 스타트로 구현 가능한 자기완결 티켓(tickets/<fe|be>/NNNN-<slug>.md)으로 그릴하고 의존 순서 플로우를 그리는 스킬(기획 전단 7단계, 종료). 책임 도메인 분류 → 구조 결정(ARCHITECTURE 패턴 기본값 계승 vs 대안) → 엣지케이스 심층 분석. 산출 티켓은 scripts/implement.ps1 -Side <fe|be>로 구현 엔진에 넘겨 새 브랜치에서 "구현만" 시킨다. 티켓만 쓴다(코드·엔진 호출 안 함). "티켓 만들어줘", "이거 티켓화", "티켓 플로우 그려", "ticket" 류에 사용.
+description: 정제(distill)와 아키텍처가 끝난 도메인을 콜드 스타트로 구현 가능한 자기완결 티켓(tickets/<fe|be>/NNNN-<slug>.md)으로 그릴하고 의존 순서 플로우를 그리는 스킬(기획 전단 종료). 책임 도메인 분류 → 구조 결정(ARCHITECTURE 패턴 기본값 계승 vs 대안) → 엣지케이스 심층 분석. 산출 티켓은 scripts/implement.ps1 -Side <fe|be>로 구현 엔진에 넘겨 새 브랜치에서 "구현만" 시킨다. 티켓만 쓴다(코드·엔진 호출 안 함). "티켓 만들어줘", "이거 티켓화", "티켓 플로우 그려", "ticket" 류에 사용.
 ---
 
 # ticket — 구현 티켓 + 의존 플로우 (기획 전단 7단계, 종료)
 
-도메인을 자기완결 티켓으로 그릴하고 의존 순서를 그린다. 전제: [qa](../qa/SKILL.md) 통과 + [arch](../arch/SKILL.md)로 `docs/arch/ARCHITECTURE.md` 확정. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md). 산출: `tickets/<fe|be>/NNNN-<slug>.md`.
+도메인을 자기완결 티켓으로 그릴하고 의존 순서를 그린다. 전제: [distill](../distill/SKILL.md)로 도메인 정제 + [arch](../arch/SKILL.md)로 `docs/arch/ARCHITECTURE.md` 확정. 규약: [docs/conventions.md](.claude/docs/conventions.md). 산출: `tickets/<fe|be>/NNNN-<slug>.md`.
 
-구현 엔진은 티켓 밖을 안 건드린다 → 모호하면 구현이 샌다. 작성 전 그릴로 갈림길을 닫고 한 장에 ①책임 도메인 ②구조(패턴) ③엣지케이스를 못 박는다. **티켓만 쓴다 — 코드도 엔진 호출도 안 한다**(검수 게이트 보존).
+구현 엔진은 티켓 밖을 안 건드린다 → 모호하면 구현이 샌다. 작성 전 그릴로 갈림길을 닫고 한 장에 ①책임 도메인 ②구조(패턴) ③엣지케이스를 못 박는다. **티켓만 쓴다 — 코드도 엔진 호출도 안 한다**(검수 게이트).
 
 ## 1. 시작 전 읽기 (이 순서)
 1. `docs/arch/ARCHITECTURE.md` §1 기술 스택 · §4 패턴 정책 — 스택·레이어·패턴 기본값.
@@ -30,10 +30,10 @@ description: QA와 아키텍처가 끝난 도메인을 콜드 스타트로 구�
 ARCHITECTURE §4 도메인 기본값(TS/DM)에서 출발. 기능 성격이 기본값과 맞으면 그대로 + *왜* 한 줄. 어긋나면 트레이드오프 제안(A 기존 계승 / B 대안), 한 번에 한 갈림길, skeptic 기본. 규약 이탈이면 티켓에 근거 + 도메인 `일지` 한 줄. 코드로 답할 수 있으면 직접 읽는다.
 
 ## 4. 엣지 케이스 심층 분석
-한 패스로 전수 스윕: 경계값(0·음수·최대·빈 컬렉션) / 상태·순서(중복·동시·재진입·잘못된 시점) / 수명(정리 시점) / 통지(늦은 구독·중복 발화) / 데이터 결손(id 미스·행 없음) / 상호작용(가로지름 충돌·순환). 각 케이스를 표로(`케이스 / 기대 동작 / 처리 위치`), QA 융합 분기를 근거로. 모르면 추측 말고 갈림길로.
+한 패스로 전수 스윕: 경계값(0·음수·최대·빈 컬렉션) / 상태·순서(중복·동시·재진입·잘못된 시점) / 수명(정리 시점) / 통지(늦은 구독·중복 발화) / 데이터 결손(id 미스·행 없음) / 상호작용(가로지름 충돌·순환). 각 케이스를 표로(`케이스 / 기대 동작 / 처리 위치`), plan-fe/plan-be에서 확정한 분기를 근거로. 모르면 추측 말고 갈림길로.
 
 ## 5. 티켓 작성
-[templates/ticket.md](${DDD_ROOT}/templates/ticket.md)를 복제해 채운다:
+[templates/ticket.md](.claude/templates/ticket.md)를 복제해 채운다:
 - 경로: `tickets/<fe|be>/NNNN-<영문-slug>.md` (NNNN = 그 측 폴더 기존 최대 +1, 4자리).
 - 프런트매터 필수: `id` · `branch`(feat/<slug>) · `base`(기본 main) · `domain`(fe/<name> 또는 be/<name>) · `stage`(M/C/V) · `pattern`(TS/DM, ARCHITECTURE 기준) · `engine`(codex/claude) · `status: ready` · `created`.
 - **자기완결성** — 콜드 에이전트가 이 티켓만 읽고 구현 가능한가? 변경 파일 경로·시그니처·DTO 필드 구체적. "적절히"·"알아서" 금지.
@@ -47,7 +47,7 @@ ARCHITECTURE §4 도메인 기본값(TS/DM)에서 출발. 기능 성격이 기�
 2. 구조 이탈 결정했으면 도메인 `일지` 기록 확인.
 3. 안내 — **티켓 검수 후** 아래로(스킬이 직접 호출하지 않는다):
    ```
-   pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side be -Ticket tickets/be/NNNN-<slug>.md
-   pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side fe -Ticket tickets/fe/NNNN-<slug>.md
+   pwsh ".claude/scripts/implement.ps1" -Side be -Ticket tickets/be/NNNN-<slug>.md
+   pwsh ".claude/scripts/implement.ps1" -Side fe -Ticket tickets/fe/NNNN-<slug>.md
    ```
    `base`에서 `branch`를 따 `engine`에게 "이 티켓만 구현"시킨다. 검토·커밋·푸시는 사람.

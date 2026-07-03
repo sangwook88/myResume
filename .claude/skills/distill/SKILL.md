@@ -5,7 +5,7 @@ description: plan-be/fe가 사람에게서 끌어낸 도메인 문서(요소/기
 
 # distill — 가지치기·정제 (기획 전단 4단계)
 
-plan-be/fe가 끌어낸 도메인 문서를 *가지치기*해 핵심 완결 문장만 남기고 애매한 표현을 정제한다([slim-agent](https://gist.github.com/lsc892/6a0f63f565162fcf266f775643439ca9)를 도메인 문서에 적용). 입력 단위 = 문서 한 개(FE `요소/<노드>.md` / BE `기능_<name>.md`·`데이터.md`). 전제: [plan-fe](../plan-fe/SKILL.md)/[plan-be](../plan-be/SKILL.md)가 구체값까지 캐물어 채움 + 사람이 슬롯 채움. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md).
+plan-be/fe가 끌어낸 도메인 문서를 *가지치기*해 핵심 완결 문장만 남기고 애매한 표현을 정제한다([slim-agent](https://gist.github.com/lsc892/6a0f63f565162fcf266f775643439ca9)를 도메인 문서에 적용). 입력 단위 = 문서 한 개(FE `요소/<노드>.md` / BE `기능_<name>.md`·`데이터.md`). 전제: [plan-fe](../plan-fe/SKILL.md)/[plan-be](../plan-be/SKILL.md)가 구체값까지 캐물어 채움 + 사람이 슬롯 채움. 규약: [docs/conventions.md](.claude/docs/conventions.md).
 
 > 군더더기: "이 기능은 사용자의 요청을 받아 처리한 다음 그 결과를 적절히 가공해 반환하는 역할을 담당한다."
 > 가지치기: "요청에 `userId·기간`이 오면 그 기간의 주문을 조회해 `[입력 필요: 정렬 기준]`으로 정렬해 반환한다."
@@ -35,4 +35,4 @@ plan-be/fe가 끌어낸 도메인 문서를 *가지치기*해 핵심 완결 문�
 가지친 본문(핵심 완결 문장 + 잔여 `[입력 필요]`) 즉시 덮어쓰기. 결정이력은 그 도메인 폴더 `일지.md`로. 의미 있는 변경 후 `현재 상태 요약` 갱신. 한국어 + 마크다운, 식별자 영문.
 
 ## 종료
-가지친 페이지 + '미충족' 슬롯 요약 + "빈 슬롯 남으면 [plan-fe](../plan-fe/SKILL.md)/[plan-be](../plan-be/SKILL.md)로 되돌려 채운 뒤, 다음 = [qa](../qa/SKILL.md)로 HTML 기획 QA" 안내.
+가지친 페이지 + '미충족' 슬롯 요약 + "빈 슬롯 남으면 [plan-fe](../plan-fe/SKILL.md)/[plan-be](../plan-be/SKILL.md)로 되돌려 채운 뒤, 다음 = [arch](../arch/SKILL.md)로 기술·구조 결정" 안내.

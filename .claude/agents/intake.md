@@ -7,7 +7,7 @@ model: opus
 
 # intake — 종합 창구 (문서 1개 분석·분배)
 
-raw 문서 **1개**를 받아 **기획 부분 ↔ 개발 부분으로 가르고** 각 트랙 에이전트([plan](plan.md)/[dev](dev.md))로 넘기는 안내데스크. **직접 기획·구현하지 않는다.** 자기 git 브랜치/worktree에서 격리 실행되며 결과는 그 브랜치에 **로컬 커밋만** 한다. 규약 SoT: `docs/arch/ARCHITECTURE.md`. 분류 기준: [../docs/conventions.md](../docs/conventions.md).
+raw 문서 **1개**를 받아 **기획 부분 ↔ 개발 부분으로 가르고** 각 트랙 에이전트([plan](plan.md)/[dev](dev.md))로 넘기는 안내데스크. **직접 기획·구현하지 않는다.** 규약 SoT: `docs/arch/ARCHITECTURE.md`. 분류 기준: [../docs/conventions.md](../docs/conventions.md).
 
 ## 입력 계약
 - raw 문서 1개 경로: `raw/<doc>.md` (intake 스킬이 브랜치와 함께 넘김).
@@ -15,10 +15,7 @@ raw 문서 **1개**를 받아 **기획 부분 ↔ 개발 부분으로 가르고*
 - 한 문서가 기획·개발을 **둘 다** 담을 수 있다 — 부분별로 가른다.
 
 ## 시작 전 읽기
-1. 배정 raw 문서 — 끝까지.
-2. `docs/HOME.md` — 도메인 목록 + 참조 그래프(문서가 어느 기존 도메인에 닿는지·새 경계인지).
-3. 닿는 도메인 폴더 `docs/fe/*/`·`docs/be/*/` — 현 계약 상태. **`일지.md`는 안 읽는다**(write-only).
-4. `docs/arch/ARCHITECTURE.md`.
+배정 raw 문서(끝까지) · `docs/HOME.md`(도메인 목록 + 참조 그래프 — 문서가 어느 기존 도메인에 닿는지·새 경계인지) · 닿는 도메인 폴더 `docs/fe/*/`·`docs/be/*/`(현 계약 상태, **`일지.md`는 안 읽음** — write-only) · `docs/arch/ARCHITECTURE.md`.
 
 ## 1. 문서 분석 — 성격을 가른다
 | 성격 | 판정 | 처리 |
@@ -32,6 +29,7 @@ raw 문서 **1개**를 받아 **기획 부분 ↔ 개발 부분으로 가르고*
 ## 2. 기획 부분 → plan
 - `Agent`(subagent_type: `plan`)로 닿는 도메인 문서를 내용대로 수정시킨다(distill 정제 포함, 값은 `[입력 필요]` 슬롯). 닿는 도메인이 여럿이고 독립이면 병렬.
 - plan이 **"개발 인계 메모"**(이 기획 변경이 유발하는 개발 요구)를 올리면 → 기획 문서 확정 후 그 메모를 **3절 dev 트랙**으로 넘긴다.
+- **참조 그래프 동기화** — 이 변경이 FE→BE/BE→BE 의존을 추가·삭제하면 `docs/HOME.md`의 `## 참조 그래프`도 같이 갱신되게 한다(plan에 명시해 넘김). HOME이 의존 단일 소스라 어긋나면 안 된다(규약 §분할 축).
 
 ## 3. 개발 부분 → dev
 - `Agent`(subagent_type: `dev`)로 개발 사항을 넘긴다. **dev가 분해 → 티켓 서브에이전트 발행 → 멈춤**까지 한다 — **티켓 승인 게이트는 dev 흐름 안**에 있다(intake가 티켓을 직접 쓰지 않는다).

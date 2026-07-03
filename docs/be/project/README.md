@@ -1,7 +1,7 @@
 ---
 kind: be
 status: not-started
-pattern:                  # arch가 채움 (TS/DM)
+pattern: TS               # arch 확정 (트랜잭션 스크립트)
 depends: [be/point]       # index의 포인트 목록을 be/point frontmatter 스캔으로 조립
 # --- implement.ps1 헤드리스 백엔드용 (선택) ---
 branch: feat/be-project
@@ -19,8 +19,7 @@ engine: codex
 - [기능_프로젝트인덱스조회.md](기능_프로젝트인덱스조회.md) — project 기준 표지 데이터 + published 포인트 목록 조립 (프로젝트인덱스)
 
 ## 패턴 (BE 도메인만)
-*ARCHITECTURE §패턴 정책 기본값. arch가 채운다.*
-- 채택: *[입력 필요: arch에서 결정 — TS/DM + 왜]*
+- 채택: **TS(트랜잭션 스크립트)** — 표지 조회 + 포인트목록 조립은 거의 순수 조회라 절차적 함수로 충분. ([ARCHITECTURE §4](../../arch/ARCHITECTURE.md))
 
 ## 책임지지 않는 것
 - **개별 포폴 포인트(2계층) 데이터·발행 status** — be/point. 여기선 표지 + 포인트 *목록 조립*만(목록은 be/point에서 파생).

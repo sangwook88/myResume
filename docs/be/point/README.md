@@ -1,7 +1,7 @@
 ---
 kind: be
 status: not-started
-pattern:                  # arch가 채움 (TS/DM)
+pattern: TS               # arch 확정 (트랜잭션 스크립트)
 depends: []               # be/point는 말단(sink) — 다른 도메인을 읽지 않음
 # --- implement.ps1 헤드리스 백엔드용 (선택) ---
 branch: feat/be-point
@@ -20,8 +20,7 @@ engine: codex
 - [기능_포인트단건조회.md](기능_포인트단건조회.md) — id 기준 published 포인트 단건(9섹션+Evidence) (포인트상세)
 
 ## 패턴 (BE 도메인만)
-*ARCHITECTURE §패턴 정책 기본값. arch가 채운다.*
-- 채택: *[입력 필요: arch에서 결정 — TS/DM + 왜]*
+- 채택: **TS(트랜잭션 스크립트)** — 파일 파싱→DTO 조회 + 발행 게이트 검증은 얇은 절차적 규칙이라 도메인 모델 불필요. ([ARCHITECTURE §4](../../arch/ARCHITECTURE.md))
 
 ## 책임지지 않는 것
 - **프로젝트 표지(index 1계층) 데이터·프로젝트 목록** — be/project. 여기선 개별 포인트만.

@@ -1,7 +1,7 @@
 ---
 kind: be
 status: not-started
-pattern:                  # arch가 채움 (TS/DM)
+pattern: TS               # arch 확정 (트랜잭션 스크립트)
 depends: [be/point, be/project]   # load-all 코퍼스: published 포인트 + 프로젝트 표지
 # --- implement.ps1 헤드리스 백엔드용 (선택) ---
 branch: feat/be-chat
@@ -20,8 +20,7 @@ engine: codex
 - [기능_세션이력관리.md](기능_세션이력관리.md) — session_id 기준 이력 로드·저장, TTL 1일 만료 (fe/chat 양 노드)
 
 ## 패턴 (BE 도메인만)
-*ARCHITECTURE §패턴 정책 기본값. arch가 채운다.*
-- 채택: *[입력 필요: arch에서 결정 — TS/DM + 왜]*
+- 채택: **TS(트랜잭션 스크립트)** — load-all + 근거 인용 + 세션 관리는 LLM·스토어 오케스트레이션이지 도메인 불변식이 아니라 절차적 서비스로 구현. ([ARCHITECTURE §4](../../arch/ARCHITECTURE.md))
 
 ## 책임지지 않는 것
 - **챗 화면·패널·스트리밍 렌더·근거 링크 클릭 이탈** — fe/chat. 여기선 데이터·응답만 생성.

@@ -1,0 +1,14 @@
+# 의존성
+/node_modules
+
+# Next.js 빌드 산출물
+/.next
+/out
+
+# 환경변수(로컬)
+.env
+.env*.local
+
+# 로그·OS
+npm-debug.log*
+.DS_Store

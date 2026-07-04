@@ -5,6 +5,9 @@
 /.next
 /out
 
+# TS 증분 빌드 캐시
+*.tsbuildinfo
+
 # 환경변수(로컬)
 .env
 .env*.local

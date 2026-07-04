@@ -12,8 +12,8 @@
 ## FE 도메인
 | slug | 역할(한 줄) | 상태 |
 |---|---|---|
-| fe/browse | 채용자가 렌더된 위키(published 포인트)를 둘러보는 화면 + 기본 디자인 템플릿 | not-started |
-| fe/chat | 채용자가 챗봇과 대화하는 UI + 근거(커밋/Swagger 등) 링크 노출 | not-started |
+| fe/browse | 채용자가 렌더된 위키(published 포인트)를 둘러보는 화면 + 기본 디자인 템플릿 | done |
+| fe/chat | 채용자가 챗봇과 대화하는 UI + 근거(커밋/Swagger 등) 링크 노출 | done |
 
 ## BE 도메인
 | slug | 역할(한 줄) | 상태 |

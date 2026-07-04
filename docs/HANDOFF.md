@@ -15,7 +15,7 @@
 | `4a2e075` | be/chat 구현(load-all 답변생성·세션·제안질문) |
 | (uncommitted) | frontend 스캐폴드 + HOME 상태표 + 본 문서 |
 
-HOME 도메인 상태: **be/point·be/project·be/chat = done**, fe/browse·fe/chat = **남음**.
+HOME 도메인 상태: **be/point·be/project·be/chat = done**, **fe/browse·fe/chat = done** (Wave 4 구현 완료 — 아래 §4 파일 작성됨, typecheck·`next build` 통과. 남은 검증은 BE 기동 스모크(사람 몫)).
 
 ## 2. 완료된 것 (Wave 1–3, BE)
 

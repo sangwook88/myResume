@@ -18,8 +18,8 @@
 ## BE 도메인
 | slug | 역할(한 줄) | 상태 |
 |---|---|---|
-| be/project | 프로젝트 인덱스(표지=1계층) 데이터 모델 — 요약·역할/기간/팀·기술스택·아키텍처개요·핵심성과 · 프로젝트 카탈로그(목록) | in-progress |
-| be/point | 포폴 포인트(2계층) 데이터 모델/양식(STAR+ADR 9섹션 + **근거 필수 필드**) · 위키 파일 저장 · 발행 status(draft↔published) | in-progress |
+| be/project | 프로젝트 인덱스(표지=1계층) 데이터 모델 — 요약·역할/기간/팀·기술스택·아키텍처개요·핵심성과 · 프로젝트 카탈로그(목록) | done |
+| be/point | 포폴 포인트(2계층) 데이터 모델/양식(STAR+ADR 9섹션 + **근거 필수 필드**) · 위키 파일 저장 · 발행 status(draft↔published) | done |
 | be/chat | 챗봇 응답 엔진 — published 포인트 **load-all**(API) + 근거 링크 인용 | in-progress |
 
 ## 참조 그래프

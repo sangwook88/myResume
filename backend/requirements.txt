@@ -1,0 +1,5 @@
+# be/point (v1 wave 1) 런타임 의존. 관계형 DB·그 외 의존 추가 금지(ARCHITECTURE §1, 티켓 §8).
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+PyYAML>=6.0

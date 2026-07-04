@@ -3,3 +3,10 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 pydantic>=2.6
 PyYAML>=6.0
+
+# be/chat (v1 wave 3) 런타임 의존.
+# - langchain-anthropic: Claude claude-sonnet-5 스트리밍 + 프롬프트 캐싱(cache_control) 오케스트레이션(ARCHITECTURE §1·§4).
+# - redis: 세션 이력 스토어(session_id → turns), TTL 1일 sliding(ARCHITECTURE §5).
+langchain-anthropic>=0.2
+langchain-core>=0.3
+redis>=5.0

@@ -1,6 +1,6 @@
 ---
 kind: be
-status: not-started
+status: done
 pattern: TS               # arch 확정 (트랜잭션 스크립트)
 depends: [be/point]       # index의 포인트 목록을 be/point frontmatter 스캔으로 조립
 # --- implement.ps1 헤드리스 백엔드용 (선택) ---

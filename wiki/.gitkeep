@@ -1,0 +1,2 @@
+# 콘텐츠 루트. 포폴 포인트 = wiki/<project>/<id>.md (be/point), 표지 = wiki/<project>/index.md (be/project).
+# 저작은 로컬 — 예시/실데이터 마크다운은 여기에 커밋하지 않는다(티켓 §8).

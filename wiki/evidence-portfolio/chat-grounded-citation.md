@@ -1,6 +1,6 @@
 ---
 id: chat-grounded-citation
-title: 근거기반 챗봇 — Evidence 인용 + 환각 거부를 SSE 스트리밍으로
+title: "근거기반 챗봇: Evidence 인용 + 환각 거부"
 project: evidence-portfolio
 status: published
 tags: [featured, 기술구현, 챗봇]

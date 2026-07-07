@@ -3,7 +3,7 @@ id: decompose-granularity
 title: 도메인 분할 granularity를 '위키-정렬 세분할' 단일 원칙으로 고정
 project: fe-be-ddd
 status: published
-tags: [featured, 설계결정, decompose]
+tags: [설계결정, decompose]
 commits: [8f0f37b, 1aa7a0a, 280f924]
 updated: 2026-06-26
 ---

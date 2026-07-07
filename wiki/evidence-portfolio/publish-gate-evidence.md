@@ -1,9 +1,9 @@
 ---
 id: publish-gate-evidence
-title: 발행 게이트 — 근거(Evidence) 없이는 published 불가로 "근거 강제"
+title: "발행 게이트: 근거 없이는 published 불가"
 project: evidence-portfolio
 status: published
-tags: [featured, 설계결정, be]
+tags: [설계결정, be]
 commits: [d8df3ed, c7f0989]
 updated: 2026-07-04
 ---

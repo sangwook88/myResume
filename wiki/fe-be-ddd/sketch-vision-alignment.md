@@ -3,7 +3,7 @@ id: sketch-vision-alignment
 title: sketch 단계 신설 — 저코스트 목업으로 비전 합맞춤, qa 제거
 project: fe-be-ddd
 status: published
-tags: [featured, 기획파이프라인, 프로세스]
+tags: [기획파이프라인, 프로세스]
 commits: [b5a78b4]
 updated: 2026-06-29
 ---

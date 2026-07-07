@@ -1,6 +1,6 @@
 ---
 id: content-store-git-md
-title: 콘텐츠 저장소로 관계형 DB 대신 git 마크다운 채택 — 포크 셀프호스팅 배포 모델
+title: "콘텐츠 저장소: 관계형 DB 대신 git 마크다운"
 project: evidence-portfolio
 status: published
 tags: [featured, 설계결정, 아키텍처]

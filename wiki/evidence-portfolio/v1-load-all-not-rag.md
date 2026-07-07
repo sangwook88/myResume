@@ -1,9 +1,9 @@
 ---
 id: v1-load-all-not-rag
-title: v1 챗봇 서빙을 RAG 대신 load-all + 프롬프트 캐싱으로
+title: "v1 챗봇 서빙: RAG 대신 load-all + 프롬프트 캐싱"
 project: evidence-portfolio
 status: published
-tags: [featured, 설계결정, 챗봇]
+tags: [설계결정, 챗봇]
 commits: [a3e354b, 2e1024f, 4a2e075]
 updated: 2026-06-27
 ---

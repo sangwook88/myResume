@@ -3,7 +3,7 @@ id: dev-single-brain
 title: 오케스트레이터(desk)·빌드 진입점 제거 — dev 단일 구현 두뇌로 통합
 project: fe-be-ddd
 status: published
-tags: [featured, 리팩토링, 아키텍처]
+tags: [리팩토링, 아키텍처]
 commits: [60f3c69, df44472]
 updated: 2026-06-26
 ---

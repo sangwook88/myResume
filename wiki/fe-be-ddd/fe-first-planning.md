@@ -3,7 +3,7 @@ id: fe-first-planning
 title: 기획 전단을 FE-first로 — BE를 FE 플로우에서 도출
 project: fe-be-ddd
 status: published
-tags: [featured, 설계결정, 기획파이프라인]
+tags: [설계결정, 기획파이프라인]
 commits: [80472c1, 4f8ca48]
 updated: 2026-06-27
 ---

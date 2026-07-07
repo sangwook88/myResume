@@ -29,14 +29,18 @@ description: 코드 레포 1개(로컬 경로 또는 GitHub URL)를 근거기반
 
 ## 2. 표지 `wiki/<slug>/index.md`
 
-frontmatter (be/project 계약): `name`(표시 이름)·`summary`(한 줄)·`role`·`period`·`teamSize`·`techStack`(목적 라벨 붙이면 좋음)·`architecture`(2문장 내 압축)·`highlights`(3~4개, 실제 사실). role/teamSize 미확정이면 `[입력 필요]`.
+frontmatter (be/project 계약): `name`(표시 이름)·`summary`·`role`·`period`·`teamSize`·`techStack`(목적 라벨 붙이면 좋음)·`architecture`(2문장 내 압축)·`highlights`(3~4개, 실제 사실). role/teamSize 미확정이면 `[입력 필요]`.
+
+> **문구 압축 (표지·포인트 공통)**: `summary`는 **핵심 한 문장으로 압축**한다 — 콤마로 절을 잇달아 나열하지 말고, 채용자가 3초에 이해하는 한 문장. 처음부터 압축해서 쓴다(장황하게 쓴 뒤 나중에 줄이지 않는다). `architecture`도 2문장 내로, `highlights`는 각 한 줄.
 
 ## 3. 포인트 `wiki/<slug>/<id>.md` (STAR+ADR 9섹션)
 
 be/point 파서가 인식하는 **H2 헤딩 그대로** 쓴다(부분일치):
 `## 제목·요약` / `## 배경` / `## 문제` / `## 고려한 옵션`(표) / `## 결정과 근거` / `## 실행` / `## 결과` / `## 회고` / `## Evidence`(표).
 
-- frontmatter: `id`(kebab)·`title`·`project`(=slug)·`status: draft`·`tags`(featured 넣으면 추천 노출)·`commits`(해시 리스트)·`updated`(ISO, 실제 커밋 날짜).
+- frontmatter: `id`(kebab)·`title`·`project`(=slug)·`status: draft`·`tags`·`commits`(해시 리스트)·`updated`(ISO, 실제 커밋 날짜).
+  - `title`: **핵심만 짧게, "주제: 요점" 콜론형 권장**(카드에서 안 감기게). 콜론이 들어가면 frontmatter에서 **반드시 따옴표로 감싼다** — `title: "콘텐츠 저장소: 관계형 DB 대신 git 마크다운"`. 안 그러면 YAML 파싱이 깨진다.
+  - `tags`: `featured`는 홈 추천에 노출된다 — **전 포인트에 남발하지 말고 포트폴리오 전체에서 대표작 2~3개만** 준다(전부 featured면 추천이 "최신 3개"로 무의미해지고 한 프로젝트만 노출됨).
 - **고려한 옵션 표** 컬럼: `옵션 | 장점 | 단점 | 채택`(O/X). 결정에 대안이 있었으면 꼭 채운다(ADR 핵심).
 - **Evidence 표** 컬럼: `종류 | 라벨 | 링크`. 링크 = `https://github.com/<owner>/<repo>/commit/<hash>` 또는 `/pull/<n>`.
 - 좋은 항목이 되려면 **한 프로젝트당 3~5 포인트**를 권장(성격이 겹치지 않게: 설계결정/기술깊이/리팩토링/프로세스 등으로 분산).

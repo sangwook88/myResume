@@ -53,6 +53,8 @@ export interface Point extends PointSummary {
 /** 랜딩 카탈로그용 프로젝트 요약. */
 export interface ProjectSummary {
   slug: string;
+  /** 사람이 읽는 표시 이름(없으면 slug 폴백). */
+  name: string;
   summary: string;
 }
 

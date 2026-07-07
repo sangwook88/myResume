@@ -49,7 +49,7 @@ function PointCard({ point }: { point: PointSummary }) {
 function ProjectCard({ project }: { project: ProjectSummary }) {
   return (
     <Link className="card" href={`/projects/${encodeURIComponent(project.slug)}`}>
-      <div className="t">{project.slug}</div>
+      <div className="t">{project.name}</div>
       <div className="m">{project.summary}</div>
     </Link>
   );

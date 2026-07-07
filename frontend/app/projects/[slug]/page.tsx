@@ -20,7 +20,7 @@ export default async function ProjectIndexPage({
         <span>{project.slug}</span>
       </div>
 
-      <h1>{project.slug}</h1>
+      <h1>{project.name}</h1>
       <p className="sub">{project.summary}</p>
 
       <h3>역할 / 기간 / 팀</h3>

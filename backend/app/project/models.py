@@ -19,6 +19,7 @@ class ProjectSummary(CamelModel):
     """랜딩 카탈로그용 요약 카드."""
 
     slug: str
+    name: str  # 사람이 읽는 표시 이름(frontmatter name, 없으면 slug 폴백)
     summary: str
 
 

@@ -6,7 +6,10 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.chat.router import router as chat_router
 from app.point.router import router as point_router
@@ -33,12 +36,28 @@ OPENAPI_TAGS = [
 ]
 
 
+# fe/chat 은 브라우저 클라이언트 island 가 직접 POST/SSE 로 호출하는 교차출처 요청이라
+# CORS 프리플라이트를 통과해야 한다(페이지 GET 은 Next 서버 컴포넌트가 서버측에서 부르므로 무관).
+# 세션 쿠키를 동봉하므로 allow_credentials=True → 오리진은 명시(와일드카드 불가). dev 기본값 제공.
+_DEFAULT_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+CORS_ORIGINS = [
+    o.strip() for o in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",") if o.strip()
+]
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="근거기반 포트폴리오 API",
         version="0.1.0",
         description=API_DESCRIPTION,
         openapi_tags=OPENAPI_TAGS,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.include_router(point_router)
     app.include_router(project_router)

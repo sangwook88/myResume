@@ -19,8 +19,12 @@ description: 로컬 개발 서버를 한 번에 띄운다 — 백엔드(FastAPI/
 
 - **BE venv**: `backend/.venv/Scripts/uvicorn.exe` 존재?
   - 없으면 → venv 미생성. 안내: `cd backend; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt`
-- **BE .env**: `backend/.env` 존재?
-  - 없으면 → `backend/.env.example`를 복사해 `ANTHROPIC_API_KEY`를 채우라고 안내. (챗봇 호출 시 필요. 없어도 서버 기동 자체는 됨 — 경고만.)
+- **BE .env**: `backend/.env` 존재? 그리고 `ANTHROPIC_API_KEY`가 placeholder가 아닌 실제 키(`sk-ant-…`)인가?
+  - 없으면 → `backend/.env.example`를 복사해 채우라고 안내. (챗봇 호출 시 필요. 없어도 둘러보기 페이지·서버 기동은 됨 — 경고만.)
+  - **주의**: uvicorn 은 `.env` 를 자동 로드하지 않는다 → 반드시 `--env-file .env` 로 띄워야 챗봇 LLM 인증이 된다(아래 기동 명령 참고).
+- **Redis(챗봇 세션)**: 6379 리스닝? (`Get-NetTCPConnection -LocalPort 6379`)
+  - 이 PC엔 **Memurai**(Windows 네이티브 Redis)가 서비스로 설치돼 자동 시작된다 — 보통 그냥 떠 있음.
+  - 안 떠 있으면 → `Start-Service Memurai` 안내. (Redis 없으면 둘러보기는 되지만 **챗봇 세션 로드에서 실패**.)
 - **FE 의존성**: `frontend/node_modules` 존재?
   - 없으면 → 먼저 `cd frontend; npm install` 을 돌려 설치한 뒤 진행.
 
@@ -32,9 +36,11 @@ description: 로컬 개발 서버를 한 번에 띄운다 — 백엔드(FastAPI/
 
 - **백엔드** — 작업 디렉터리 `backend/`, venv 바이너리를 직접 호출(활성화 불필요):
   ```
-  cd backend && .venv/Scripts/uvicorn.exe app.main:app --reload
+  cd backend && .venv/Scripts/uvicorn.exe app.main:app --reload --env-file .env
   ```
-  (`app.main` 이 import 되려면 반드시 `backend/`에서 실행해야 한다.)
+  (`app.main` 이 import 되려면 반드시 `backend/`에서 실행해야 한다. `--env-file .env` 는
+  `ANTHROPIC_API_KEY` 를 프로세스 환경에 로드해 챗봇 LLM 인증을 가능케 한다 — 빼면
+  챗봇이 "답변 생성 중 오류"로 실패한다.)
 
 - **프론트엔드** — 작업 디렉터리 `frontend/`:
   ```

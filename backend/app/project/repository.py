@@ -57,6 +57,7 @@ def load_raw(path: Path) -> dict:
 
     return {
         "slug": path.parent.name,  # 디렉토리 이름이 정본 slug
+        "name": str(fm.get("name") or path.parent.name),  # 표시 이름(없으면 slug 폴백)
         "summary": str(fm.get("summary") or ""),
         "role": str(fm.get("role") or ""),
         "period": str(fm.get("period") or ""),

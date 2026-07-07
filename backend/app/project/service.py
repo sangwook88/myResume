@@ -16,7 +16,7 @@ from app.project.models import ProjectIndex, ProjectSummary
 
 
 def _to_summary(raw: dict) -> ProjectSummary:
-    return ProjectSummary(slug=raw["slug"], summary=raw["summary"])
+    return ProjectSummary(slug=raw["slug"], name=raw["name"], summary=raw["summary"])
 
 
 def list_projects() -> list[ProjectSummary]:
@@ -46,6 +46,7 @@ def get_index(slug: str) -> ProjectIndex | None:
     points = point_service.list_by_project(slug)
     return ProjectIndex(
         slug=raw["slug"],
+        name=raw["name"],
         summary=raw["summary"],
         role=raw["role"],
         period=raw["period"],

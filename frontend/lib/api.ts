@@ -10,7 +10,9 @@ import type { Point, PointSummary, ProjectIndex, ProjectSummary } from './types'
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000';
 
 // 콘텐츠(위키)는 안정적 → ISR 재검증 주기(초). 저작 반영 지연 허용 범위.
-const REVALIDATE_SECONDS = 300;
+// 단 개발 모드(저작 중)에선 0으로 즉시 반영 — 새 포인트/수정이 새로고침에 바로 보이게.
+// 프로덕션(포크 셀프호스팅 빌드)은 300초 ISR 유지.
+const REVALIDATE_SECONDS = process.env.NODE_ENV === 'development' ? 0 : 300;
 
 /** 단일 JSON 리소스 조회. 302(없는/draft) 또는 네트워크 실패면 null. */
 async function getJson<T>(path: string): Promise<T | null> {

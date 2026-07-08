@@ -69,8 +69,8 @@ be/project → be/point                     (index 포인트목록 = frontmatter
 - id·project·slug = 케밥. 날짜 = ISO `YYYY-MM-DD`. commits = git range `a..b`. period = `YYYY.MM–YYYY.MM`.
 - FE=TS(camelCase), BE=Python(snake_case) 내부. API 계약 키 케이스는 §5 슬롯.
 
-## 8. 미결
-- 배포 플랫폼·CI 구체.
-- 프롬프트 캐싱 TTL(5분 기본 vs 1시간)·브레이크포인트 배치.
-- LangChain 세션 스토어 구현 세부(Redis 연결·키 스키마).
-- 세션 `session_id` 발급·쿠키 속성(SameSite·Secure) 세부.
+## 8. 미결 → 확정 (v1 마감)
+- **배포**: 셀프호스팅(각자 포크) 확정 — 관리형 플랫폼 강제 없음. 셋업·구동 절차는 [README](../../README.md). CI는 v1 미도입(선택).
+- **프롬프트 캐싱**: `cache_control: ephemeral`(기본 ~5분) 확정 — v1 트래픽·코퍼스 규모엔 충분. 1시간 확장 캐시는 v3(RAG·대규모)에서 재검토. 브레이크포인트 = system prefix(코퍼스) 1개.
+- **세션 스토어(Redis)**: 구현 확정 — 키 `chat:session:{session_id}`, JSON 1개, TTL 86400초 sliding(load·save마다 갱신).
+- **세션 쿠키**: 서버 발급 opaque `session_id`, `HttpOnly`·`SameSite=Lax`·`Max-Age=86400`. `Secure`는 HTTPS 배포 시 켠다(플랫폼/리버스 프록시에서 TLS 종단).

@@ -8,6 +8,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '근거기반 포트폴리오',
   description: '결정마다 커밋·PR·Swagger로 검증 가능한 포트폴리오',
+  openGraph: {
+    title: '근거기반 포트폴리오',
+    description: '결정마다 커밋·PR·Swagger로 검증 가능한 포트폴리오',
+    type: 'website',
+  },
 };
 
 export const viewport: Viewport = {

@@ -1,0 +1,11 @@
+# be/chat (v3) RAG 서빙 — 선택적 의존. 기본 챗봇은 load-all 이라 이 파일 없이 동작한다.
+#
+# RAG(질문 기반 시맨틱 top-K)를 켤 때만 설치한다:
+#   pip install -r requirements-rag.txt
+#   그리고 .env 에 CHAT_RAG_ENABLED=1, 인덱스 빌드:
+#   .venv/Scripts/python.exe scripts/build_rag_index.py
+#
+# fastembed: 로컬 ONNX 임베딩(torch 불필요). 최초 사용 시 모델을 1회 다운로드한다.
+# numpy 는 fastembed 의존으로 함께 설치되어 파일 벡터 인덱스의 코사인 top-K 에 쓰인다.
+# 외부 임베딩 API·벡터 DB 서버 없음(배포 = 각자 포크 셀프호스팅, DB 프로비저닝 0).
+fastembed>=0.4

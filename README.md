@@ -70,3 +70,15 @@ python scripts/publish.py <point-id>     # draft → published (게이트 미충
 ```
 Claude Code 사용자는 `/pofol` 스킬로 레포 git 이력에서 표지+포인트 초안을 저작할 수 있다.
 양식·규약은 [ARCHITECTURE](docs/arch/ARCHITECTURE.md) 참고.
+
+## 챗봇 RAG (선택, 고급)
+
+기본 챗봇은 published 전량을 **load-all** 해 답한다(소규모 포폴엔 이게 더 완전하고 프롬프트 캐시로 저렴). 포인트가 충분히(대략 20+) 쌓여 컨텍스트가 부담될 때만, 질문 기반 **시맨틱 top-K(RAG)** 로 전환할 수 있다 — 외부 벡터 DB 없이 로컬 ONNX 임베딩 + 파일 인덱스다.
+
+```bash
+cd backend
+.venv/Scripts/pip install -r requirements-rag.txt              # fastembed(+numpy) 설치
+.venv/Scripts/python.exe scripts/build_rag_index.py           # 인덱스 빌드(위키 바뀌면 재실행)
+# .env 에 CHAT_RAG_ENABLED=1 추가 후 BE 재시작
+```
+RAG 를 끄면(기본) fastembed 없이도 챗봇은 load-all 로 정상 동작한다.

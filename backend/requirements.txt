@@ -11,7 +11,6 @@ langchain-anthropic>=0.2
 langchain-core>=0.3
 redis>=5.0
 
-# be/chat (v3) RAG 서빙: 로컬 임베딩(ONNX, torch 불필요) + 파일 기반 벡터 인덱스.
-# 외부 임베딩 API·벡터 DB 서버 없이 numpy 코사인 top-K 로 관련 포인트만 골라 넣는다
-# (배포 = 각자 포크 셀프호스팅, DB 프로비저닝 0). numpy 는 fastembed 의존으로 함께 설치됨.
-fastembed>=0.4
+# be/chat (v3) RAG 서빙은 기본 OFF(CHAT_RAG_ENABLED)이며 fastembed 는 지연 임포트라,
+# RAG 를 안 켜는 포크는 이 의존이 필요 없다(앱 기동·챗봇 load-all 정상). RAG 를 켤 때만
+# 별도 설치: pip install -r requirements-rag.txt  (fastembed = ONNX 로컬 임베딩, 최초 1회 모델 다운로드).

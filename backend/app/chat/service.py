@@ -240,7 +240,9 @@ async def answer_stream(
     store = store or SessionStore()
 
     session = store.get_or_create(session_id, context)
-    bundle = corpus_mod.build_corpus(context)
+    # v3: 질문 기반 RAG top-K 코퍼스. 인덱스 없음·작은 코퍼스·검색 실패 시 내부에서
+    # load-all(build_corpus)로 자동 폴백한다(인용 토큰 계약은 두 경로 모두 보존).
+    bundle = corpus_mod.build_corpus_rag(question, context)
 
     # 빈 코퍼스(published 0개) = 근거 없음: LLM 호출 없이 거부 카피 스트리밍.
     if not bundle.has_content:

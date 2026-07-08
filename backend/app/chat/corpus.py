@@ -161,6 +161,89 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
     )
 
 
+# v3 RAG 전환 파라미터(사람이 조정하는 손잡이).
+# - _RAG_MIN_POINTS: published 포인트가 이 수 이하면 load-all(작은 코퍼스는 전량이 더
+#   완전하고 캐시로 저렴). 초과하면 시맨틱 top-K(RAG)로 스케일.
+# - _RAG_TOP_K: 질문당 코퍼스에 넣을 관련 포인트 수(진입 맥락 포인트는 이와 별도로 우선).
+_RAG_MIN_POINTS = 8
+_RAG_TOP_K = 6
+
+
+def build_corpus_rag(
+    question: str,
+    context_point_id: str | None = None,
+    k: int = _RAG_TOP_K,
+) -> CorpusBundle:
+    """질문 기반 RAG 코퍼스 조립(기능_답변생성.md v3).
+
+    시맨틱 검색으로 질문과 관련 높은 published 포인트 top-K 만 골라 코퍼스를 만든다.
+    진입 맥락 포인트(context_point_id)는 top-K 밖이어도 최우선으로 넣는다.
+
+    load-all 폴백(그대로 build_corpus 호출)하는 경우:
+      - 질문이 비었거나 인덱스가 없거나(fastembed 미설치·미빌드),
+      - 색인된 포인트 수가 _RAG_MIN_POINTS 이하(작은 코퍼스),
+      - 검색이 아무것도 반환하지 못한 경우.
+
+    인용 계약 보존: 선택한 포인트를 load-all 과 **동일한 _render_point** 로 렌더하므로
+    evidence·point_of_token 토큰 매핑이 넣은 포인트에 대해 정확히 유지된다.
+    """
+    from app.chat import retrieval  # 지연 임포트(fastembed 미설치 환경에서도 앱 임포트 성공)
+
+    if not question or not question.strip():
+        return build_corpus(context_point_id)
+    total = retrieval.indexed_count()
+    if total == 0 or total <= _RAG_MIN_POINTS:
+        # 인덱스 없음(신선 enumeration 필요) 또는 작은 코퍼스 → load-all 이 낫다.
+        return build_corpus(context_point_id)
+
+    hits = retrieval.retrieve(question, k)
+    if not hits:
+        return build_corpus(context_point_id)
+
+    # 선택 포인트 id: 진입 맥락 최우선 → 검색 상위 순, 중복 제거.
+    ordered_ids: list[str] = []
+    seen_ids: set[str] = set()
+    if context_point_id:
+        priority = point_service.get_published(context_point_id)
+        if priority is not None:
+            ordered_ids.append(priority.id)
+            seen_ids.add(priority.id)
+    for hit in hits:
+        if hit.id not in seen_ids:
+            ordered_ids.append(hit.id)
+            seen_ids.add(hit.id)
+
+    evidence: dict[str, Citation] = {}
+    point_of_token: dict[str, dict] = {}
+    counter = [0]
+    blocks: list[str] = ["# 질문과 관련 있는 포인트(시맨틱 top-K)"]
+    covered_projects: set[str] = set()
+    point_count = 0
+
+    for pid in ordered_ids:
+        point = point_service.get_published(pid)
+        if point is None:
+            continue
+        # 각 포인트의 프로젝트 표지를 최초 1회 함께 넣어 맥락을 준다.
+        if point.project not in covered_projects:
+            idx = project_service.get_index(point.project)
+            if idx is not None:
+                blocks.append(_render_cover(idx))
+            covered_projects.add(point.project)
+        blocks.append(_render_point(point, evidence, point_of_token, counter))
+        point_count += 1
+
+    if point_count == 0:  # 방어적: 검색은 됐지만 전부 비공개로 사라진 경우
+        return build_corpus(context_point_id)
+
+    return CorpusBundle(
+        text="\n\n".join(blocks),
+        evidence=evidence,
+        point_of_token=point_of_token,
+        point_count=point_count,
+    )
+
+
 def build_point_context(point_id: str) -> str | None:
     """제안질문 생성용: 단일 포인트 핵심 섹션(제목·요약·문제·결정과 근거) 컨텍스트.
 

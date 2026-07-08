@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .venv/
 .env
+
+# be/chat v3 RAG 인덱스(위키에서 재생성되는 빌드 아티팩트 — scripts/build_rag_index.py)
+.rag_index/

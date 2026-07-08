@@ -134,6 +134,26 @@ table.opt td.pick { font-weight: 700; color: #0a7; text-align: center; }
 .evi-num { flex: none; width: 26px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .evi-item .evi-link { flex: 1; min-width: 0; margin: 6px 0; }
 
+/* v2 하이브리드 다리 — B: 섹션 헤더 + "물어보기" 버튼 */
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line-soft); margin: 26px 0 .4em; padding-top: 16px; }
+.section-head .section-label { border-top: none; margin: 0; padding-top: 0; }
+.ask-sec { flex: none; border: 1px solid #cfdcf3; background: #f4f8ff; color: #2256c6; border-radius: 16px; padding: 3px 11px; font-size: 12px; cursor: pointer; }
+.ask-sec:hover { background: #e6efff; }
+
+/* A: 포인트 하단 인라인 추천질문 칩 */
+.ask-inline { margin-top: 26px; }
+.ask-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.ask-chip { border: 1px solid #cfdcf3; background: #f4f8ff; color: #2256c6; border-radius: 18px; padding: 7px 14px; font-size: 13px; cursor: pointer; text-align: left; }
+.ask-chip:hover { background: #e6efff; border-color: #b8cdf3; }
+
+/* C: 챗봇 답변 하단 관련 포인트 딥링크(ask→browse) */
+.rel-points { margin-top: 9px; border-top: 1px dashed #e2e7ef; padding-top: 8px; }
+.rel-points .lbl { font-size: 11px; color: #8893a5; font-weight: 700; margin-bottom: 5px; }
+.rel-point { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #2256c6; text-decoration: none; padding: 5px 8px; border: 1px solid #e0e7f3; border-radius: 8px; margin: 4px 0; background: #f7f9ff; }
+.rel-point:hover { background: #e8f0ff; border-color: #b8cdf3; }
+.rel-point .lbltext { flex: 1; min-width: 0; }
+.rel-point .chev { color: #9aa7bd; flex: none; }
+
 /* ===== 빈 상태 ===== */
 .empty-state {
   border: 1px dashed #c5cad1; border-radius: 10px; padding: 28px 18px;

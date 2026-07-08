@@ -41,6 +41,7 @@ class CorpusBundle:
 
     text: str
     evidence: dict[str, Citation] = field(default_factory=dict)
+    point_of_token: dict[str, dict] = field(default_factory=dict)  # E토큰 → 출처 포인트{id,title}(v2 딥링크)
     point_count: int = 0
 
     @property
@@ -65,8 +66,14 @@ def _render_cover(idx: ProjectIndex) -> str:
     return "\n".join(lines)
 
 
-def _render_point(point: Point, evidence: dict[str, Citation], counter: list[int]) -> str:
-    """포인트 1건을 코퍼스 블록으로. Evidence 는 인용 토큰을 부여해 registry 에 등록한다."""
+def _render_point(
+    point: Point,
+    evidence: dict[str, Citation],
+    point_of_token: dict[str, dict],
+    counter: list[int],
+) -> str:
+    """포인트 1건을 코퍼스 블록으로. Evidence 는 인용 토큰을 부여해 registry 에 등록하고,
+    그 토큰이 어느 포인트에서 왔는지도 기록한다(v2 인용→포인트 딥링크)."""
     lines = [f"### 포인트 [{point.id}]: {point.title} (프로젝트: {point.project})"]
     if point.tags:
         lines.append(f"- 태그: {', '.join(point.tags)}")
@@ -100,6 +107,7 @@ def _render_point(point: Point, evidence: dict[str, Citation], counter: list[int
             counter[0] += 1
             token = f"E{counter[0]}"
             evidence[token] = Citation(kind=ev.kind, label=ev.label, url=ev.url)
+            point_of_token[token] = {"id": point.id, "title": point.title}
             lines.append(f"  - [[{token}]] kind={ev.kind} | {ev.label} | {ev.url}")
 
     return "\n".join(lines)
@@ -112,6 +120,7 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
     포인트'로 우선 배치한다(기능_답변생성.md). 없는/비공개 맥락이면 무시한다.
     """
     evidence: dict[str, Citation] = {}
+    point_of_token: dict[str, dict] = {}
     counter = [0]
     blocks: list[str] = []
     point_count = 0
@@ -122,7 +131,7 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
         if priority is not None:
             priority_id = priority.id
             blocks.append("# 가장 관련 있는 포인트(진입 맥락)")
-            blocks.append(_render_point(priority, evidence, counter))
+            blocks.append(_render_point(priority, evidence, point_of_token, counter))
             point_count += 1
 
     blocks.append("# 전체 포트폴리오 코퍼스")
@@ -137,7 +146,7 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
             point = point_service.get_published(summ.id)
             if point is None:
                 continue
-            blocks.append(_render_point(point, evidence, counter))
+            blocks.append(_render_point(point, evidence, point_of_token, counter))
             point_count += 1
 
     text = "\n\n".join(blocks)
@@ -147,7 +156,9 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
             "RAG(v3) 도입 신호로 본다(티켓 §6).",
             len(text),
         )
-    return CorpusBundle(text=text, evidence=evidence, point_count=point_count)
+    return CorpusBundle(
+        text=text, evidence=evidence, point_of_token=point_of_token, point_count=point_count
+    )
 
 
 def build_point_context(point_id: str) -> str | None:

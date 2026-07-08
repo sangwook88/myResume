@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 import { getPoint, getProjectPoints } from '@/lib/api';
 import type { Option } from '@/lib/types';
 import EvidenceList from '@/components/EvidenceList';
+import AskChips from '@/components/AskChips';
+import AskSectionButton from '@/components/AskSectionButton';
 
 export default async function PointDetailPage({
   params,
@@ -21,6 +23,14 @@ export default async function PointDetailPage({
   );
 
   const s = point.sections;
+
+  // A: 포인트 하단 인라인 추천질문(있는 섹션 기반, 최대 3). 클릭 → 챗봇 열림+자동전송.
+  const askQuestions = [
+    s.decision ? '이 결정을 왜 내렸는지 근거와 함께 설명해줘' : null,
+    s.options ? '고려한 다른 옵션은 뭐였고 왜 안 골랐어?' : null,
+    s.result ? '이 결정의 결과는 어땠어?' : null,
+    s.retrospective ? '여기서 배운 점(회고)은 뭐야?' : null,
+  ].filter((q): q is string => q !== null).slice(0, 3);
 
   return (
     <main className="page">
@@ -50,7 +60,10 @@ export default async function PointDetailPage({
       {/* 3. 문제 (핵심) */}
       {s.problem && (
         <section>
-          <div className="section-label">문제</div>
+          <div className="section-head">
+            <div className="section-label">문제</div>
+            <AskSectionButton question="이 포인트가 풀려던 문제를 더 자세히 설명해줘" />
+          </div>
           <p>{s.problem}</p>
         </section>
       )}
@@ -66,7 +79,10 @@ export default async function PointDetailPage({
       {/* 5. 결정과 근거 (핵심) */}
       {s.decision && (
         <section>
-          <div className="section-label">결정과 근거</div>
+          <div className="section-head">
+            <div className="section-label">결정과 근거</div>
+            <AskSectionButton question="이 결정의 근거를 더 자세히 설명해줘" />
+          </div>
           <p>{s.decision}</p>
         </section>
       )}
@@ -97,6 +113,9 @@ export default async function PointDetailPage({
 
       {/* 9. Evidence (핵심 — 발행 게이트가 ≥1 보장). v2: 번호 각주형 + 접기 */}
       <EvidenceList evidence={point.evidence} />
+
+      {/* v2(A) 읽다가 → 묻기 다리: 인라인 추천질문 칩 */}
+      <AskChips questions={askQuestions} />
 
       {siblings.length > 0 && (
         <section>

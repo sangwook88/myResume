@@ -41,6 +41,8 @@ def _format(ev: dict) -> str:
         return _sse("token", {"text": ev["text"]})
     if kind == "citations":
         return _sse("citations", ev["citations"])
+    if kind == "points":
+        return _sse("points", ev["points"])
     if kind == "error":
         return _sse("error", {"message": ev["message"]})
     return _sse("done", {})

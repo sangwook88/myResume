@@ -15,9 +15,11 @@ const EMPTY_HINT =
 
 export default function ChatPanel({
   contextPointId,
+  initialQuestion,
   onClose,
 }: {
   contextPointId: string | null;
+  initialQuestion?: string | null;
   onClose: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -80,6 +82,7 @@ export default function ChatPanel({
         {
           onToken: (t) => patchBot((m) => ({ ...m, text: m.text + t })),
           onCitations: (cits: Citation[]) => patchBot((m) => ({ ...m, citations: cits })),
+          onPoints: (pts) => patchBot((m) => ({ ...m, points: pts })),
           onDone: () => setLoading(false),
           onError: (msg) => {
             // 빈 봇 말풍선은 제거하고 에러+재시도 노출.
@@ -102,6 +105,16 @@ export default function ChatPanel({
   const retry = useCallback(() => {
     if (lastQuestionRef.current) send(lastQuestionRef.current);
   }, [send]);
+
+  // 콘텐츠(AskChips·섹션 버튼)에서 넘어온 질문 자동 전송. 같은 질문은 1회만.
+  const autoSentRef = useRef<string | null>(null);
+  useEffect(() => {
+    const q = initialQuestion?.trim();
+    if (q && autoSentRef.current !== q) {
+      autoSentRef.current = q;
+      send(q);
+    }
+  }, [initialQuestion, send]);
 
   const ctxLabel = contextPointId ? '맥락: 이 포인트' : '맥락: 전역';
 

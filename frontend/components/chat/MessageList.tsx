@@ -3,13 +3,16 @@
 // fe/chat — 대화 로그. 말풍선 멀티턴 + 답변 하단 근거 링크(외부 새 탭).
 // role="log" + aria-live="polite"(요소/질문-응답 접근성). 스트리밍 중엔 로딩 인디케이터.
 import { useEffect, useRef } from 'react';
-import type { Citation } from '@/lib/chatClient';
+import Link from 'next/link';
+import type { Citation, PointRef } from '@/lib/chatClient';
 
 export interface ChatMessage {
   role: 'user' | 'bot';
   text: string;
   /** 답변 끝 인용 근거(bot 전용, 없으면 undefined). */
   citations?: Citation[];
+  /** 인용 근거가 나온 출처 포인트(bot 전용) — 둘러보기 딥링크(v2 하이브리드). */
+  points?: PointRef[];
 }
 
 const KIND_CLASS = new Set(['commit', 'pr', 'swagger']);
@@ -62,6 +65,21 @@ export default function MessageList({
                   <span className="lbltext">{c.label}</span>
                   <span className="ext" aria-hidden="true">새 탭 ↗</span>
                 </a>
+              ))}
+            </div>
+          )}
+          {m.points && m.points.length > 0 && (
+            <div className="rel-points">
+              <div className="lbl">관련 포인트</div>
+              {m.points.map((p) => (
+                <Link
+                  key={p.id}
+                  className="rel-point"
+                  href={`/points/${encodeURIComponent(p.id)}`}
+                >
+                  <span className="lbltext">{p.title}</span>
+                  <span className="chev" aria-hidden="true">›</span>
+                </Link>
               ))}
             </div>
           )}

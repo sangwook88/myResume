@@ -208,6 +208,18 @@ def _resolve_citations(citation_text: str, registry: dict[str, Citation]) -> lis
     return result
 
 
+def _resolve_points(citation_text: str, point_of_token: dict[str, dict]) -> list[dict]:
+    """인용된 E토큰이 어느 포인트에서 왔는지 → 중복 제거한 출처 포인트 목록(v2 딥링크)."""
+    result: list[dict] = []
+    seen: set[str] = set()
+    for token in _TOKEN_RE.findall(citation_text):
+        p = point_of_token.get(token)
+        if p is not None and p["id"] not in seen:
+            seen.add(p["id"])
+            result.append(p)
+    return result
+
+
 async def answer_stream(
     session_id: str,
     question: str,
@@ -276,6 +288,11 @@ async def answer_stream(
     citations = _resolve_citations(splitter.citation_text, bundle.evidence)
 
     yield {"type": "citations", "citations": [c.model_dump(by_alias=True) for c in citations]}
+
+    # v2 하이브리드: 인용된 근거가 나온 출처 포인트 → 둘러보기 딥링크(ask→browse 역방향).
+    related = _resolve_points(splitter.citation_text, bundle.point_of_token)
+    if related:
+        yield {"type": "points", "points": related}
 
     # 성공: 이번 user 질문 + assistant 답변(+근거)을 세션에 보존(멀티턴).
     session.turns.append(Turn(role="user", text=question))

@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ChatPanel from '@/components/chat/ChatPanel';
+import { ASK_EVENT, type AskDetail } from '@/lib/askChat';
 
 /** /points/<id> 경로면 그 id를, 아니면 null(무맥락)을 반환. */
 function derivePointContext(pathname: string | null): string | null {
@@ -23,6 +24,7 @@ function derivePointContext(pathname: string | null): string | null {
 
 export default function ChatFab() {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const pathname = usePathname();
   const contextPointId = derivePointContext(pathname);
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -34,7 +36,21 @@ export default function ChatFab() {
     wasOpen.current = open;
   }, [open]);
 
-  const close = useCallback(() => setOpen(false), []);
+  // 콘텐츠(AskChips·섹션 버튼)에서 온 질문: 패널 열고 그 질문을 자동 전송.
+  useEffect(() => {
+    function onAsk(e: Event) {
+      const q = (e as CustomEvent<AskDetail>).detail?.question;
+      setPending(q && q.trim() ? q : null);
+      setOpen(true);
+    }
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setPending(null);
+  }, []);
 
   return (
     <>
@@ -45,11 +61,20 @@ export default function ChatFab() {
         aria-label="챗봇 열기"
         title="챗봇 열기"
         hidden={open}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setPending(null);
+          setOpen(true);
+        }}
       >
         💬
       </button>
-      {open && <ChatPanel contextPointId={contextPointId} onClose={close} />}
+      {open && (
+        <ChatPanel
+          contextPointId={contextPointId}
+          initialQuestion={pending}
+          onClose={close}
+        />
+      )}
     </>
   );
 }

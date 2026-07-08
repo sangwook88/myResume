@@ -15,6 +15,12 @@ export interface Citation {
   url: string;
 }
 
+/** 답변이 인용한 근거가 나온 출처 포인트(v2 하이브리드 딥링크). */
+export interface PointRef {
+  id: string;
+  title: string;
+}
+
 /** POST /api/chat 요청 바디. session_id 는 쿠키로 별도 동봉(바디에 없음). */
 export interface ChatRequestBody {
   question: string;
@@ -26,6 +32,7 @@ export interface ChatRequestBody {
 export interface StreamHandlers {
   onToken: (text: string) => void; // 0..N회, 점진 토큰
   onCitations: (citations: Citation[]) => void; // 1회, 답변 끝 인용(없으면 [])
+  onPoints?: (points: PointRef[]) => void; // 선택: 인용 근거의 출처 포인트(딥링크)
   onDone: () => void; // 정상 종료
   onError: (message: string) => void; // 생성 실패·타임아웃·연결 오류
 }
@@ -58,6 +65,15 @@ function dispatchFrame(frame: string, h: StreamHandlers): void {
         h.onCitations(Array.isArray(parsed) ? (parsed as Citation[]) : []);
       } catch {
         h.onCitations([]);
+      }
+      break;
+    }
+    case "points": {
+      try {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) h.onPoints?.(parsed as PointRef[]);
+      } catch {
+        /* 무시 */
       }
       break;
     }

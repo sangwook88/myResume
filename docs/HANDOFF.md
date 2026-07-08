@@ -1,5 +1,7 @@
 # 세션 핸드오프 — v1 구현 (다른 머신에서 이어받기)
 
+> ⚠️ **[보관용 · 완료됨]** v1 Wave 4 FE 구현 인계용 시점 스냅샷(2026-07-04). **v1·v2 구현이 모두 끝나 인계 대상 없음.** 지금 셋업·구동은 [README](../README.md), 계약·규약은 [ARCHITECTURE](arch/ARCHITECTURE.md)를 본다. 아래는 당시 기록으로만 유효.
+
 > 목적: 기획 전단이 끝난 v1 도메인 5개 중 **BE 3개 완료 + FE 스캐폴드**까지 된 상태에서, 다른 컴퓨터/세션이 **Wave 4(fe/browse·fe/chat UI)**를 이어 구현하도록 인계한다.
 > 규약 SoT: [docs/arch/ARCHITECTURE.md](arch/ARCHITECTURE.md). 도메인 지도: [docs/HOME.md](HOME.md).
 > 최종 갱신: 2026-07-04 (desk 오케스트레이션이 세션 한도로 Wave 4 직전 중단됨).

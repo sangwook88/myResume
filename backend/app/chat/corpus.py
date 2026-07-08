@@ -16,6 +16,7 @@ RAG 아님 — v1 은 전부 로드한다. 컨텍스트 예산 초과 시 로그
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 
 from app.chat.models import Citation
@@ -162,10 +163,18 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
 
 
 # v3 RAG 전환 파라미터(사람이 조정하는 손잡이).
-# - _RAG_MIN_POINTS: published 포인트가 이 수 이하면 load-all(작은 코퍼스는 전량이 더
-#   완전하고 캐시로 저렴). 초과하면 시맨틱 top-K(RAG)로 스케일.
-# - _RAG_TOP_K: 질문당 코퍼스에 넣을 관련 포인트 수(진입 맥락 포인트는 이와 별도로 우선).
-_RAG_MIN_POINTS = 8
+#
+# _RAG_ENABLED: RAG 마스터 스위치. 기본 OFF → 챗봇은 항상 전량 load-all 로 답한다.
+#   RAG 코드는 살아있되(잠듦), 사람이 CHAT_RAG_ENABLED=1 로 명시적으로 켤 때만 동작한다.
+#   왜 기본 OFF 인가: 지금 포폴은 소수(임시 데이터)라 전량 load-all(프롬프트 캐시로 저렴)이
+#   더 완전하다. 소형 다국어 임베딩은 짧은 한국어 질의에서 정밀도가 무르고, top-K 로 몇 개만
+#   뽑으면 관련 포인트를 놓쳐 답변이 빈약해진다. 자동 임계치로 슬그머니 바뀌는 것보다,
+#   콘텐츠가 충분히 쌓였을 때 사람이 켜는 편이 예측 가능하다.
+# _RAG_MIN_POINTS: (플래그 ON 일 때의 2차 안전장치) 색인 포인트가 이 수 이하면 그래도
+#   load-all. 켰더라도 코퍼스가 작으면 전량이 더 낫다.
+# _RAG_TOP_K: 질문당 코퍼스에 넣을 관련 포인트 수(진입 맥락 포인트는 이와 별도로 우선).
+_RAG_ENABLED = os.environ.get("CHAT_RAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+_RAG_MIN_POINTS = 20
 _RAG_TOP_K = 6
 
 
@@ -180,6 +189,7 @@ def build_corpus_rag(
     진입 맥락 포인트(context_point_id)는 top-K 밖이어도 최우선으로 넣는다.
 
     load-all 폴백(그대로 build_corpus 호출)하는 경우:
+      - RAG 마스터 스위치 OFF(_RAG_ENABLED=False, 기본값),
       - 질문이 비었거나 인덱스가 없거나(fastembed 미설치·미빌드),
       - 색인된 포인트 수가 _RAG_MIN_POINTS 이하(작은 코퍼스),
       - 검색이 아무것도 반환하지 못한 경우.
@@ -187,6 +197,10 @@ def build_corpus_rag(
     인용 계약 보존: 선택한 포인트를 load-all 과 **동일한 _render_point** 로 렌더하므로
     evidence·point_of_token 토큰 매핑이 넣은 포인트에 대해 정확히 유지된다.
     """
+    if not _RAG_ENABLED:
+        # 마스터 스위치 OFF(기본): RAG 코드는 잠들고 항상 전량 load-all.
+        return build_corpus(context_point_id)
+
     from app.chat import retrieval  # 지연 임포트(fastembed 미설치 환경에서도 앱 임포트 성공)
 
     if not question or not question.strip():

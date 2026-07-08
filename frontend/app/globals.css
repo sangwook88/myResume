@@ -140,6 +140,18 @@ table.opt td.pick { font-weight: 700; color: #0a7; text-align: center; }
 .ask-sec { flex: none; border: 1px solid #cfdcf3; background: #f4f8ff; color: #2256c6; border-radius: 16px; padding: 3px 11px; font-size: 12px; cursor: pointer; }
 .ask-sec:hover { background: #e6efff; }
 
+/* v3: 본문 텍스트 드래그 선택 시 뜨는 플로팅 "이 부분 물어보기" 버튼.
+   position:fixed + JS로 좌표 주입. z-index는 FAB(40)~패널(50) 사이. */
+.sel-ask {
+  position: fixed; z-index: 45; transform: translateX(-50%);
+  border: 1px solid var(--primary-dark); background: var(--primary); color: #fff;
+  border-radius: 16px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(47, 111, 237, .4);
+}
+.sel-ask:hover { background: var(--primary-dark); }
+.sel-ask:focus-visible { outline: 3px solid rgba(47, 111, 237, .4); outline-offset: 2px; }
+
 /* A: 포인트 하단 인라인 추천질문 칩 */
 .ask-inline { margin-top: 26px; }
 .ask-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }

@@ -8,6 +8,7 @@ import type { Option } from '@/lib/types';
 import EvidenceList from '@/components/EvidenceList';
 import AskChips from '@/components/AskChips';
 import AskSectionButton from '@/components/AskSectionButton';
+import SelectionAsk from '@/components/SelectionAsk';
 
 export default async function PointDetailPage({
   params,
@@ -33,7 +34,9 @@ export default async function PointDetailPage({
   ].filter((q): q is string => q !== null).slice(0, 3);
 
   return (
-    <main className="page">
+    <main className="page" id="point-body">
+      {/* v3 인라인 선택-질문: 본문(#point-body) 텍스트 드래그 선택 → 플로팅 버튼 → 챗봇 자동 질문 */}
+      <SelectionAsk containerId="point-body" />
       <div className="topbar">
         <Link className="back" href={`/projects/${encodeURIComponent(point.project)}`}>
           ← {point.project}

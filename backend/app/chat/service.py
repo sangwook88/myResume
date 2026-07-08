@@ -48,11 +48,19 @@ _ANSWER_SYSTEM = """\
   쉼표로 나열한다. 근거 토큰이 없으면 이 구분자 자체를 출력하지 않는다.
 - 근거 토큰은 코퍼스의 [[E숫자]] 표기에서만 가져온다.
 - 한국어로, 채용 담당자가 이해하기 쉽게 간결히 답한다.
+- 눈높이: {tone}
 
 <코퍼스>
 {corpus}
 </코퍼스>
 """
+
+# v2 모드 토글 — 답변 눈높이. 근거·거부 규칙은 그대로, 표현 수위만 바꾼다. 미지 값은 technical 폴백.
+_MODE_TONE = {
+    "technical": "상대는 개발자·기술 면접관이다. 기술 용어와 구현 디테일·트레이드오프를 살려 정확히 답한다.",
+    "hr": "상대는 비개발 채용 담당자다. 코드·파일·함수·리포지토리 이름(예: be/point, scripts/publish.py)과 기술 전문용어는 쓰지 말고, 무엇을·왜·어떤 효과였는지 일상 언어로 풀어 역할·성과·영향 중심으로 답한다.",
+}
+_DEFAULT_MODE = "technical"
 
 _SUGGEST_SYSTEM = """\
 아래 포트폴리오 포인트를 근거로, 채용 담당자가 물어볼 만한 한국어 질문 3개를
@@ -204,6 +212,7 @@ async def answer_stream(
     session_id: str,
     question: str,
     context: str | None = None,
+    mode: str = _DEFAULT_MODE,
     *,
     llm: LLMClient | None = None,
     store: SessionStore | None = None,
@@ -232,7 +241,10 @@ async def answer_stream(
         return
 
     system_text = _ANSWER_SYSTEM.format(
-        refusal=REFUSAL, sentinel_marker=CITATION_SENTINEL.strip(), corpus=bundle.text
+        refusal=REFUSAL,
+        sentinel_marker=CITATION_SENTINEL.strip(),
+        corpus=bundle.text,
+        tone=_MODE_TONE.get(mode, _MODE_TONE[_DEFAULT_MODE]),
     )
     messages = _to_messages(session.turns)
     messages.append({"role": "user", "content": question})

@@ -19,6 +19,7 @@ export interface Citation {
 export interface ChatRequestBody {
   question: string;
   context?: string | null; // 진입 맥락 = 보던 포인트 id 또는 null(무맥락)
+  mode?: "technical" | "hr"; // 답변 눈높이(v2 모드 토글). 생략 시 BE 기본 technical
 }
 
 /** 스트리밍 이벤트 핸들러 묶음. */

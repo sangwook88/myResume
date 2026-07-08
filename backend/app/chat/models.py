@@ -36,6 +36,7 @@ class ChatRequest(CamelModel):
 
     question: str
     context: str | None = None  # 진입 맥락 = 보던 포인트 id 또는 null(무맥락)
+    mode: str = "technical"  # 답변 눈높이(v2 모드 토글): "technical" | "hr". 미지 값은 technical 폴백
 
 
 class Session(CamelModel):

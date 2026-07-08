@@ -26,6 +26,7 @@ export default function ChatPanel({
   const [suggestions, setSuggestions] = useState<string[]>(
     contextPointId ? [] : STATIC_SUGGESTIONS,
   );
+  const [mode, setMode] = useState<'technical' | 'hr'>('technical');
 
   const abortRef = useRef<AbortController | null>(null);
   const lastQuestionRef = useRef<string>('');
@@ -75,7 +76,7 @@ export default function ChatPanel({
         });
 
       streamChat(
-        { question: text, context: contextPointId },
+        { question: text, context: contextPointId, mode },
         {
           onToken: (t) => patchBot((m) => ({ ...m, text: m.text + t })),
           onCitations: (cits: Citation[]) => patchBot((m) => ({ ...m, citations: cits })),
@@ -95,7 +96,7 @@ export default function ChatPanel({
         ctrl.signal,
       );
     },
-    [contextPointId, loading],
+    [contextPointId, loading, mode],
   );
 
   const retry = useCallback(() => {
@@ -113,6 +114,28 @@ export default function ChatPanel({
         <button className="x" type="button" title="닫기 (Esc)" aria-label="닫기" onClick={onClose}>
           ×
         </button>
+      </div>
+
+      <div className="mode-bar">
+        <span className="mode-lbl">눈높이</span>
+        <div className="mode-seg" role="group" aria-label="답변 눈높이">
+          <button
+            type="button"
+            className={mode === 'technical' ? 'on' : ''}
+            aria-pressed={mode === 'technical'}
+            onClick={() => setMode('technical')}
+          >
+            기술
+          </button>
+          <button
+            type="button"
+            className={mode === 'hr' ? 'on' : ''}
+            aria-pressed={mode === 'hr'}
+            onClick={() => setMode('hr')}
+          >
+            HR
+          </button>
+        </div>
       </div>
 
       <MessageList

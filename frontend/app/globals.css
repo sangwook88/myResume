@@ -168,6 +168,14 @@ table.opt td.pick { font-weight: 700; color: #0a7; text-align: center; }
 .ph .x { margin-left: auto; border: none; background: none; font-size: 22px; cursor: pointer; color: #889; line-height: 1; padding: 2px 8px; }
 .ph .x:hover { color: #333; }
 
+/* v2 모드 토글 바 (기술/HR 눈높이) */
+.mode-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line-soft); background: #fff; }
+.mode-bar .mode-lbl { font-size: 12px; color: var(--muted); }
+.mode-seg { display: inline-flex; border: 1px solid #d3dae6; border-radius: 8px; overflow: hidden; }
+.mode-seg button { border: none; background: #fff; color: var(--muted); font-size: 12px; padding: 4px 14px; cursor: pointer; }
+.mode-seg button + button { border-left: 1px solid #d3dae6; }
+.mode-seg button.on { background: var(--primary); color: #fff; }
+
 .log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #fbfcfe; }
 .chat-empty { margin: auto; text-align: center; color: #94a0b3; font-size: 13px; padding: 20px; }
 .chat-empty .big { font-size: 30px; display: block; margin-bottom: 8px; }

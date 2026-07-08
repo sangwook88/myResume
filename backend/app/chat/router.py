@@ -55,7 +55,7 @@ async def post_chat(req: ChatRequest, request: Request) -> StreamingResponse:
         session_id = new_session_id()
 
     async def event_stream() -> AsyncIterator[str]:
-        async for ev in service.answer_stream(session_id, req.question, req.context):
+        async for ev in service.answer_stream(session_id, req.question, req.context, mode=req.mode):
             yield _format(ev)
 
     response = StreamingResponse(event_stream(), media_type="text/event-stream")

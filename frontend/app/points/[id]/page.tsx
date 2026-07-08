@@ -4,14 +4,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getPoint, getProjectPoints } from '@/lib/api';
-import type { Evidence, Option } from '@/lib/types';
-
-// kind → Evidence 배지 CSS 클래스(정의된 것만, 그 외 file/link 스타일).
-const EVIDENCE_KINDS = new Set(['commit', 'pr', 'swagger', 'file', 'link']);
-function kindClass(kind: string): string {
-  const k = kind.toLowerCase();
-  return EVIDENCE_KINDS.has(k) ? k : 'link';
-}
+import type { Option } from '@/lib/types';
+import EvidenceList from '@/components/EvidenceList';
 
 export default async function PointDetailPage({
   params,
@@ -101,13 +95,8 @@ export default async function PointDetailPage({
         </section>
       )}
 
-      {/* 9. Evidence (핵심 — 발행 게이트가 ≥1 보장) */}
-      <section>
-        <div className="section-label">Evidence (근거 — 클릭 검증)</div>
-        {point.evidence.map((e, i) => (
-          <EvidenceLink key={i} evidence={e} />
-        ))}
-      </section>
+      {/* 9. Evidence (핵심 — 발행 게이트가 ≥1 보장). v2: 번호 각주형 + 접기 */}
+      <EvidenceList evidence={point.evidence} />
 
       {siblings.length > 0 && (
         <section>
@@ -149,12 +138,3 @@ function OptionTable({ options }: { options: Option[] }) {
   );
 }
 
-function EvidenceLink({ evidence }: { evidence: Evidence }) {
-  return (
-    <a className="evi-link" href={evidence.url} target="_blank" rel="noopener noreferrer">
-      <span className={`kind ${kindClass(evidence.kind)}`}>{evidence.kind}</span>
-      <span className="label">{evidence.label}</span>
-      <span className="ext" aria-hidden="true">↗</span>
-    </a>
-  );
-}

@@ -120,6 +120,20 @@ table.opt td.pick { font-weight: 700; color: #0a7; text-align: center; }
 .evi-link .label { flex: 1; min-width: 0; }
 .evi-link .ext { margin-left: auto; color: #9aa0a8; flex: none; }
 
+/* Evidence 고급(v2) — 각주 번호 + 접기 헤더 */
+.evi-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: none; border: none; cursor: pointer; text-align: left;
+  font-size: 13px; font-weight: 600; color: var(--primary);
+  margin: 26px 0 6px; border-top: 1px solid var(--line-soft); padding: 16px 0 0;
+}
+.evi-toggle:hover .evi-toggle-lbl { text-decoration: underline; }
+.evi-caret { color: var(--muted); font-size: 12px; flex: none; }
+.evi-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.evi-item { display: flex; align-items: center; gap: 8px; }
+.evi-num { flex: none; width: 26px; text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.evi-item .evi-link { flex: 1; min-width: 0; margin: 6px 0; }
+
 /* ===== 빈 상태 ===== */
 .empty-state {
   border: 1px dashed #c5cad1; border-radius: 10px; padding: 28px 18px;

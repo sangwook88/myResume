@@ -5,7 +5,7 @@ description: 브레인스토밍 설계 브리프를 받아 제품 전체 비전�
 
 # sketch — 제품 비전 저코스트 목업 합맞추기 (brainstorm 직후, roadmap 이전)
 
-브레인스토밍이 빚은 **거시 목표**를 **저코스트 클릭형 목업**으로 빠르게 그려, 텍스트로만 합의한 비전을 사람이 **눈으로 클릭하며** 확인한다. "AI가 그리는 것 = 내가 그리는 것"의 간극을 **decompose 전에 싸게** 닫는 것 — 사람도 이때 더 구체화·수정한다. 도메인 분할·명세는 아직 아니다([roadmap](../roadmap/SKILL.md)→[decompose](../decompose/SKILL.md)→plan 몫). 전제: [brainstorm](../brainstorm/SKILL.md) 설계 브리프. 규약: [docs/conventions.md](.claude/docs/conventions.md). 산출: `docs/brainstorming/<topic>-sketch.html` + 합맞춘 수정의 **브리프 되먹임**.
+브레인스토밍이 빚은 **거시 목표**를 **저코스트 클릭형 목업**으로 빠르게 그려, 텍스트로만 합의한 비전을 사람이 **눈으로 클릭하며** 확인한다. "AI가 그리는 것 = 내가 그리는 것"의 간극을 **decompose 전에 싸게** 닫는 것 — 사람도 이때 더 구체화·수정한다. 도메인 분할·명세는 아직 아니다([roadmap](../roadmap/SKILL.md)→[decompose](../decompose/SKILL.md)→plan 몫). 전제: [brainstorm](../brainstorm/SKILL.md) 설계 브리프. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md). 산출: `docs/brainstorming/<topic>-sketch.html` + 합맞춘 수정의 **브리프 되먹임**.
 
 ## 절대 규칙
 1. **저충실도로 싸게.** 핵심 경험·플로우만 와이어 수준으로 — 픽셀 정확도·완성도·전수 화면에 시간 쓰지 않는다(상세 화면은 [plan-fe](../plan-fe/SKILL.md) 몫).

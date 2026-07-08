@@ -5,7 +5,7 @@ description: 기획(코스펙·distill)이 끝난 도메인들을 근거로 어�
 
 # arch — 기술·구조 아키텍처 결정 (기획 전단 6단계)
 
-"무엇"이 굳은 뒤 **어떤 기술로 어떤 구조로 지을지**를 트레이드오프로 결정한다. 전제: 코스펙(plan-fe·plan-be)·[distill](../distill/SKILL.md) 완료. 규약: [docs/conventions.md](.claude/docs/conventions.md). 산출: `docs/arch/ARCHITECTURE.md` — [ticket](../ticket/SKILL.md)의 구조 근거.
+"무엇"이 굳은 뒤 **어떤 기술로 어떤 구조로 지을지**를 트레이드오프로 결정한다. 전제: 코스펙(plan-fe·plan-be)·[distill](../distill/SKILL.md) 완료. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md). 산출: `docs/arch/ARCHITECTURE.md` — [ticket](../ticket/SKILL.md)의 구조 근거.
 
 ## 절대 규칙
 1. **트레이드오프로 결정.** 기술·구조는 갈림길로 올려 A/B(/C) 트레이드오프 + 추천 + 시나리오로 사람이 고른다(AI 단정 금지).

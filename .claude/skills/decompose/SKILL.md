@@ -5,14 +5,14 @@ description: 브레인스토밍 설계 브리프·막연한 아이디어·기존
 
 # decompose — FE/BE 도메인 분할 확정 (기획 전단 2단계)
 
-기능을 **FE 도메인**과 **BE 도메인**으로 가른다. 한 도메인이 둘을 다 짊어지지 않는다(수직 도메인 금지). AI가 제안하고 **사람이 확정**한다. 전제: [roadmap](../roadmap/SKILL.md)이 자른 **현재 타깃 버전** 범위(있으면) + [brainstorm](../brainstorm/SKILL.md) 설계 브리프(또는 막연한 아이디어). 규약: [docs/conventions.md](.claude/docs/conventions.md). 산출: `docs/HOME.md`.
+기능을 **FE 도메인**과 **BE 도메인**으로 가른다. 한 도메인이 둘을 다 짊어지지 않는다(수직 도메인 금지). AI가 제안하고 **사람이 확정**한다. 전제: [roadmap](../roadmap/SKILL.md)이 자른 **현재 타깃 버전** 범위(있으면) + [brainstorm](../brainstorm/SKILL.md) 설계 브리프(또는 막연한 아이디어). 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md). 산출: `docs/HOME.md`.
 
 ## 절대 규칙
 1. **값 생성 금지.** 수치·규칙·계산식을 짓지 않는다. 도메인 *경계와 책임*만 가른다.
 2. **한 번에 한 갈림길.** 도메인 하나씩 제안 → 확정.
 3. **2분할 경계.** 흐름·화면·전환 = FE / 무슨 데이터·무슨 계산 = BE. 한 기능은 보통 FE+BE 둘로 쪼개진다.
 4. **참조 단방향.** FE → BE(링크 호출), BE는 FE를 모른다. BE→BE 의존도 단방향·비순환.
-5. **기능/관심사별 세분할.** 기능·관심사별로 잘게 가른다(HOME=위키 해부도). **반사적 merge(하나로) 추천 금지**. (규약 [§분할 granularity](.claude/docs/conventions.md))
+5. **기능/관심사별 세분할.** 기능·관심사별로 잘게 가른다(HOME=위키 해부도). **반사적 merge(하나로) 추천 금지**. (규약 [§분할 granularity](${DDD_ROOT}/docs/conventions.md))
 
 ## 시작 전 읽기
 1. `docs/roadmap.md` — 있으면 **현재 타깃 버전**과 그 버전 *포함 기능*만 분할 대상으로 삼는다(범위 밖 기능은 다음 버전 슬롯 — 도메인으로 가르지 않는다). 없으면 기능 전체가 대상.

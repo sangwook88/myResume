@@ -31,8 +31,8 @@ model: opus
 ### 대안 백엔드 (헤드리스)
 Agent 병렬 대신 도메인을 통째로 헤드리스 엔진에 맡기려면 **안내만**(직접 실행 금지 — 검수 게이트 보존):
 ```
-pwsh ".claude/scripts/implement.ps1" -Side be -Domain <name>
-pwsh ".claude/scripts/implement.ps1" -Side fe -Domain <name>
+pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side be -Domain <name>
+pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side fe -Domain <name>
 ```
 
 ## 참조 그래프 동기화 (새 엣지)

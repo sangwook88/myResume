@@ -5,7 +5,7 @@ description: 기획 전단의 "비서" — 사용자가 무슨 말을 하면 프
 
 # desk — 기획 전단 라우터 (비서)
 
-기획 전단 7단계의 **진입점·안내데스크**. 사용자 발화 + 프로젝트 상태를 보고 **지금 단계**를 판정해 해당 단계 스킬로 인계한다. 규약: [docs/conventions.md](.claude/docs/conventions.md).
+기획 전단 7단계의 **진입점·안내데스크**. 사용자 발화 + 프로젝트 상태를 보고 **지금 단계**를 판정해 해당 단계 스킬로 인계한다. 규약: [docs/conventions.md](${DDD_ROOT}/docs/conventions.md).
 
 ## 절대 규칙
 1. **단계 작업을 직접 하지 않는다.** 분할·명세·티켓 등은 해당 스킬로 인계, 데스크는 판정·안내만.
@@ -34,7 +34,7 @@ description: 기획 전단의 "비서" — 사용자가 무슨 말을 하면 프
 | 폴더 채웠으나 가지치기 안 함 | ⑥ 가지치기·정제 | [distill](../distill/SKILL.md) |
 | 가지쳤고 ARCHITECTURE 없음 | ⑦ 기술·구조 결정 | [arch](../arch/SKILL.md) |
 | 아키텍처 확정 후 티켓 없음 | ⑧ 구현 티켓 | [ticket](../ticket/SKILL.md) |
-| 티켓 검수 끝 | (현재 버전 전단 종료) | `pwsh ".claude/scripts/implement.ps1" -Side <be\|fe> -Ticket …` (기존 구현) |
+| 티켓 검수 끝 | (현재 버전 전단 종료) | `pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side <be\|fe> -Ticket …` (기존 구현) |
 
 ⑤ 구체화는 **sketch 기반 코스펙** — sketch 목업이 있으면 plan-fe·plan-be를 **sketch를 공유 소스로 짝지어** 한 패스에 깐다(FE=호출자 플로우/요소, BE=호출 대상 데이터/기능). **sketch가 없으면 FE-first 폴백** — plan-fe로 FE를 먼저 끌어내고 그 호출에서 plan-be로 BE를 도출(둘 다 비면 plan-fe 먼저). 한 축만 막혔으면 그 축 스킬로. 어느 경로든 참조는 FE→BE 단방향이고 BE는 타이밍을 모른다. (구현 순서 BE-first는 별개 — dev가 처리.) 모든 단계는 roadmap의 **현재 타깃 버전** 범위 안에서 돈다 — 그 버전을 다 출시했으면 roadmap에서 타깃을 올린 뒤 ④부터 다시.
 

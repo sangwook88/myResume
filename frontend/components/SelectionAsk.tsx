@@ -7,8 +7,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { askChat } from '@/lib/askChat';
 
 // 선택 최소 길이(이보다 짧으면 무시) / 질문에 실을 최대 길이(넘으면 자름).
-const MIN_LEN = 8;
-const MAX_LEN = 140;
+// MIN 은 우발적 짧은 드래그를 거르되 한 단어(용어) 선택은 허용할 만큼만.
+const MIN_LEN = 6;
+const MAX_LEN = 180;
 
 interface Pos {
   top: number;
@@ -64,12 +65,19 @@ export default function SelectionAsk({ containerId }: { containerId: string }) {
   }, [containerId, hide]);
 
   useEffect(() => {
-    // mouseup: 드래그 선택이 끝난 시점. 버튼 위 클릭은 evaluate 대상에서 제외.
+    // 선택 끝난 시점을 잡아 평가한다. 버튼 자신을 건드린 건 제외(눌러서 질문 보내려는 것).
+    function isOnButton(target: EventTarget | null): boolean {
+      return !!(btnRef.current && target instanceof Node && btnRef.current.contains(target));
+    }
+    // mouseup: 마우스 드래그 선택이 끝난 시점.
     function onMouseUp(e: MouseEvent) {
-      if (btnRef.current && e.target instanceof Node && btnRef.current.contains(e.target)) {
-        return;
-      }
-      // 브라우저가 선택을 확정할 틈을 준다.
+      if (isOnButton(e.target)) return;
+      setTimeout(evaluate, 0); // 브라우저가 선택을 확정할 틈을 준다.
+    }
+    // touchend: 모바일·태블릿 — 롱프레스+핸들 드래그로 선택을 마친(또는 조정한) 시점.
+    // 터치는 selectionchange 로도 잡을 수 있으나 과다 발화하므로 touchend 로 확정 시점만 본다.
+    function onTouchEnd(e: TouchEvent) {
+      if (isOnButton(e.target)) return;
       setTimeout(evaluate, 0);
     }
     // 키보드 선택(Shift+화살표) 대응.
@@ -81,10 +89,12 @@ export default function SelectionAsk({ containerId }: { containerId: string }) {
       hide();
     }
     document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('touchend', onTouchEnd);
     document.addEventListener('keyup', onKeyUp);
     window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('scroll', onScroll, true);
     };
@@ -98,11 +108,12 @@ export default function SelectionAsk({ containerId }: { containerId: string }) {
       type="button"
       className="sel-ask"
       style={{ top: pos.top, left: pos.left }}
-      // 버튼을 누를 때 선택이 풀리지 않도록(mousedown이 선택을 해제하는 걸 막음).
-      onMouseDown={(e) => e.preventDefault()}
+      // 버튼을 누를 때 선택이 풀리지 않도록(포인터 다운이 선택을 해제하는 걸 막음).
+      // pointerdown 은 마우스·터치·펜을 모두 덮으면서 뒤따르는 click 은 살린다.
+      onPointerDown={(e) => e.preventDefault()}
       onClick={() => {
         const t = textRef.current;
-        if (t) askChat(`다음 내용에 대해 설명해줘: "${t}"`);
+        if (t) askChat(`이 부분을 더 자세히 설명해줘: "${t}"`);
         hide();
       }}
     >

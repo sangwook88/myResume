@@ -43,17 +43,23 @@ export default function ChatPanel({
     return () => ctrl.abort();
   }, [contextPointId]);
 
-  // 언마운트(패널 닫힘) 시 진행 중 스트림 취소.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // 실제 닫기(× / Esc) 시 진행 중 스트림을 취소하고 상위에 알린다.
+  // NOTE: 언마운트 cleanup 으로 abort 하면 React Strict Mode(dev)의 팬텀 언마운트에
+  // 오발화해 자동전송(initialQuestion) 스트림을 죽인다(가드 때문에 재전송도 안 됨).
+  // 그래서 abort 는 '진짜 닫기' 경로에만 건다.
+  const handleClose = useCallback(() => {
+    abortRef.current?.abort();
+    onClose();
+  }, [onClose]);
 
   // Esc → 닫고 FAB로 포커스 복귀(복귀는 ChatFab가 담당).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [handleClose]);
 
   const send = useCallback(
     (question: string) => {
@@ -124,7 +130,7 @@ export default function ChatPanel({
         <span className="dot" aria-hidden="true"></span>
         <span className="ttl">포트폴리오 챗봇</span>
         <span className={`ctx ${contextPointId ? '' : 'none'}`}>{ctxLabel}</span>
-        <button className="x" type="button" title="닫기 (Esc)" aria-label="닫기" onClick={onClose}>
+        <button className="x" type="button" title="닫기 (Esc)" aria-label="닫기" onClick={handleClose}>
           ×
         </button>
       </div>

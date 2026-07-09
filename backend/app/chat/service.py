@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 from typing import AsyncIterator, Protocol
 
@@ -28,7 +29,10 @@ logger = logging.getLogger(__name__)
 
 MODEL = "claude-sonnet-5"  # ARCHITECTURE §1
 TIMEOUT_SECONDS = 30  # ARCHITECTURE §6 · 티켓 §5
-MAX_TOKENS = 1024
+# 출력 토큰 상한. 1024 는 상세한 한국어 답변(토큰이 무거움)을 문장 중간에서 자르고,
+# 그 결과 답변 끝의 인용 구분자(###CITATIONS###)도 못 뱉어 인용까지 유실됐다. 근거기반
+# 챗봇은 답변이 완결되고 인용이 붙는 게 핵심이라 상한을 넉넉히 잡는다. env 로 조정 가능.
+MAX_TOKENS = int(os.environ.get("CHAT_MAX_TOKENS", "3072"))
 
 # 근거를 못 찾았을 때의 거부 카피(환각 방지 — ARCHITECTURE §6, 기능_답변생성.md).
 REFUSAL = "제공된 포트폴리오 근거에서 답변할 수 있는 내용을 찾지 못했습니다."

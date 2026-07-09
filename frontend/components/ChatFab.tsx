@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ChatPanel from '@/components/chat/ChatPanel';
+import type { ChatMessage } from '@/components/chat/MessageList';
 import { ASK_EVENT, type AskDetail } from '@/lib/askChat';
 
 /** /points/<id> 경로면 그 id를, 아니면 null(무맥락)을 반환. */
@@ -25,6 +26,9 @@ function derivePointContext(pathname: string | null): string | null {
 export default function ChatFab() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  // 대화 로그는 여기(FAB)에 둔다 — ChatPanel은 열 때만 마운트되므로,
+  // 로그를 패널 로컬 상태로 두면 닫는 순간 파기돼 재오픈 시 초기화된다(#5).
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const pathname = usePathname();
   const contextPointId = derivePointContext(pathname);
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +76,8 @@ export default function ChatFab() {
         <ChatPanel
           contextPointId={contextPointId}
           initialQuestion={pending}
+          messages={messages}
+          setMessages={setMessages}
           onClose={close}
         />
       )}

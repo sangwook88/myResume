@@ -2,8 +2,10 @@
 
 // fe/chat — 챗봇 패널 컨테이너. 데스크톱=우하단 패널 / 모바일=전체화면(CSS).
 // 상태 전이(플로우.md): 챗봇열림→질문응답→(이어)질문응답 / 근거링크 새 탭 / 닫기 복귀.
-// 세션은 서버 쿠키(be/chat)로 관리 — 로컬 저장 없음. 스트리밍 소비는 lib/chatClient.
+// 세션은 서버 쿠키(be/chat)로 관리. 대화 로그(messages)는 상위 ChatFab이 소유해
+// 패널 언마운트(닫기)에도 살아남는다 — 재오픈 시 이어서 대화(#5).
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { fetchSuggestions, streamChat } from '@/lib/chatClient';
 import type { Citation } from '@/lib/chatClient';
 import { STATIC_SUGGESTIONS } from '@/lib/staticSuggestions';
@@ -16,13 +18,16 @@ const EMPTY_HINT =
 export default function ChatPanel({
   contextPointId,
   initialQuestion,
+  messages,
+  setMessages,
   onClose,
 }: {
   contextPointId: string | null;
   initialQuestion?: string | null;
+  messages: ChatMessage[];
+  setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   onClose: () => void;
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>(
@@ -49,8 +54,14 @@ export default function ChatPanel({
   // 그래서 abort 는 '진짜 닫기' 경로에만 건다.
   const handleClose = useCallback(() => {
     abortRef.current?.abort();
+    // 로그는 상위(ChatFab)에 남는다. 스트림을 토큰 도착 전에 끊고 닫으면
+    // 빈 봇 말풍선이 로그 꼬리에 남아 재오픈 시 빈 버블로 보이므로 걷어낸다.
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      return last && last.role === 'bot' && last.text === '' ? prev.slice(0, -1) : prev;
+    });
     onClose();
-  }, [onClose]);
+  }, [onClose, setMessages]);
 
   // Esc → 닫고 FAB로 포커스 복귀(복귀는 ChatFab가 담당).
   useEffect(() => {

@@ -1,42 +1,69 @@
 'use client';
 
-// fe/chat — 챗봇 패널 컨테이너. 데스크톱=우하단 패널 / 모바일=전체화면(CSS).
-// 상태 전이(플로우.md): 챗봇열림→질문응답→(이어)질문응답 / 근거링크 새 탭 / 닫기 복귀.
-// 세션은 서버 쿠키(be/chat)로 관리. 대화 로그(messages)는 상위 ChatFab이 소유해
-// 패널 언마운트(닫기)에도 살아남는다 — 재오픈 시 이어서 대화(#5).
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import { fetchSuggestions, streamChat } from '@/lib/chatClient';
-import type { Citation } from '@/lib/chatClient';
+// fe/chat — 챗봇 패널(프리젠테이션). 데스크톱=우하단 패널 / 모바일=전체화면(CSS).
+// 대화 엔진(messages·전송·세션)은 상위 ChatFab 이 소유하고, 이 컴포넌트는 그 상태를
+// 그려내고 사용자 조작을 콜백으로 올린다 — 패널이 언마운트돼도 로그·스트림이 살아있게(#5).
+// 자체 소관: 맥락 제안질문 로드, Esc 닫기, 대화 목록(세션 전환) 드롭다운의 열림 상태.
+import { useCallback, useEffect, useState } from 'react';
+import { fetchSuggestions } from '@/lib/chatClient';
 import { STATIC_SUGGESTIONS } from '@/lib/staticSuggestions';
+import type { ChatSessionMeta } from '@/lib/chatSessions';
 import MessageList, { type ChatMessage } from './MessageList';
 import Composer from './Composer';
 
 const EMPTY_HINT =
   '이 포트폴리오에 대해 무엇이든 물어보세요. 답변에는 근거(커밋·PR·Swagger)가 함께 표시됩니다.';
 
+/** 대화 목록에 보일 활동 시각: 오늘이면 HH:MM, 아니면 M/D. */
+function formatWhen(ts: number): string {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export default function ChatPanel({
   contextPointId,
-  initialQuestion,
   messages,
-  setMessages,
+  loading,
+  error,
+  mode,
+  onModeChange,
+  onSend,
+  onRetry,
   onClose,
+  sessions,
+  activeId,
+  onNewChat,
+  onSwitchSession,
+  onDeleteSession,
 }: {
   contextPointId: string | null;
-  initialQuestion?: string | null;
   messages: ChatMessage[];
-  setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+  loading: boolean;
+  error: string | null;
+  mode: 'technical' | 'hr';
+  onModeChange: (m: 'technical' | 'hr') => void;
+  onSend: (question: string) => void;
+  onRetry: () => void;
   onClose: () => void;
+  sessions: ChatSessionMeta[];
+  activeId: string | null;
+  onNewChat: () => void;
+  onSwitchSession: (id: string) => void;
+  onDeleteSession: (id: string) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>(
     contextPointId ? [] : STATIC_SUGGESTIONS,
   );
-  const [mode, setMode] = useState<'technical' | 'hr'>('technical');
-
-  const abortRef = useRef<AbortController | null>(null);
-  const lastQuestionRef = useRef<string>('');
+  const [showSessions, setShowSessions] = useState(false);
 
   // 진입 맥락별 제안 질문(하이브리드): 포인트 맥락이면 be/chat 동적, 비면 정적 폴백.
   useEffect(() => {
@@ -48,90 +75,21 @@ export default function ChatPanel({
     return () => ctrl.abort();
   }, [contextPointId]);
 
-  // 실제 닫기(× / Esc) 시 진행 중 스트림을 취소하고 상위에 알린다.
-  // NOTE: 언마운트 cleanup 으로 abort 하면 React Strict Mode(dev)의 팬텀 언마운트에
-  // 오발화해 자동전송(initialQuestion) 스트림을 죽인다(가드 때문에 재전송도 안 됨).
-  // 그래서 abort 는 '진짜 닫기' 경로에만 건다.
-  const handleClose = useCallback(() => {
-    abortRef.current?.abort();
-    // 로그는 상위(ChatFab)에 남는다. 스트림을 토큰 도착 전에 끊고 닫으면
-    // 빈 봇 말풍선이 로그 꼬리에 남아 재오픈 시 빈 버블로 보이므로 걷어낸다.
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      return last && last.role === 'bot' && last.text === '' ? prev.slice(0, -1) : prev;
-    });
-    onClose();
-  }, [onClose, setMessages]);
-
-  // Esc → 닫고 FAB로 포커스 복귀(복귀는 ChatFab가 담당).
+  // Esc → 대화 목록이 열려 있으면 그것부터 닫고, 아니면 패널을 닫는다(FAB 포커스 복귀는 ChatFab).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') handleClose();
+      if (e.key !== 'Escape') return;
+      if (showSessions) setShowSessions(false);
+      else onClose();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [handleClose]);
+  }, [onClose, showSessions]);
 
-  const send = useCallback(
-    (question: string) => {
-      const text = question.trim();
-      if (!text || loading) return;
-      lastQuestionRef.current = text;
-      setError(null);
-      setLoading(true);
-      // 내 말풍선 + 빈 봇 말풍선(스트리밍으로 채워짐).
-      setMessages((prev) => [...prev, { role: 'user', text }, { role: 'bot', text: '' }]);
-
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-
-      // 마지막(봇) 메시지에만 반영하는 헬퍼.
-      const patchBot = (fn: (m: ChatMessage) => ChatMessage) =>
-        setMessages((prev) => {
-          const next = [...prev];
-          const i = next.length - 1;
-          if (i >= 0 && next[i].role === 'bot') next[i] = fn(next[i]);
-          return next;
-        });
-
-      streamChat(
-        { question: text, context: contextPointId, mode },
-        {
-          onToken: (t) => patchBot((m) => ({ ...m, text: m.text + t })),
-          onCitations: (cits: Citation[]) => patchBot((m) => ({ ...m, citations: cits })),
-          onPoints: (pts) => patchBot((m) => ({ ...m, points: pts })),
-          onDone: () => setLoading(false),
-          onError: (msg) => {
-            // 빈 봇 말풍선은 제거하고 에러+재시도 노출.
-            setMessages((prev) => {
-              const next = [...prev];
-              const i = next.length - 1;
-              if (i >= 0 && next[i].role === 'bot' && next[i].text === '') next.pop();
-              return next;
-            });
-            setError(msg);
-            setLoading(false);
-          },
-        },
-        ctrl.signal,
-      );
-    },
-    [contextPointId, loading, mode],
-  );
-
-  const retry = useCallback(() => {
-    if (lastQuestionRef.current) send(lastQuestionRef.current);
-  }, [send]);
-
-  // 콘텐츠(AskChips·섹션 버튼)에서 넘어온 질문 자동 전송. 같은 질문은 1회만.
-  const autoSentRef = useRef<string | null>(null);
-  useEffect(() => {
-    const q = initialQuestion?.trim();
-    if (q && autoSentRef.current !== q) {
-      autoSentRef.current = q;
-      send(q);
-    }
-  }, [initialQuestion, send]);
+  const newChat = useCallback(() => {
+    setShowSessions(false);
+    onNewChat();
+  }, [onNewChat]);
 
   const ctxLabel = contextPointId ? '맥락: 이 포인트' : '맥락: 전역';
 
@@ -141,10 +99,63 @@ export default function ChatPanel({
         <span className="dot" aria-hidden="true"></span>
         <span className="ttl">포트폴리오 챗봇</span>
         <span className={`ctx ${contextPointId ? '' : 'none'}`}>{ctxLabel}</span>
-        <button className="x" type="button" title="닫기 (Esc)" aria-label="닫기" onClick={handleClose}>
+        <button
+          className="ph-act lead"
+          type="button"
+          title="새 채팅"
+          aria-label="새 채팅"
+          onClick={newChat}
+        >
+          ＋
+        </button>
+        <button
+          className="ph-act"
+          type="button"
+          title="대화 목록"
+          aria-label="대화 목록"
+          aria-expanded={showSessions}
+          onClick={() => setShowSessions((v) => !v)}
+        >
+          ☰
+        </button>
+        <button className="x" type="button" title="닫기 (Esc)" aria-label="닫기" onClick={onClose}>
           ×
         </button>
       </div>
+
+      {showSessions && (
+        <div className="sess-menu" role="menu" aria-label="대화 목록">
+          {sessions.length === 0 ? (
+            <div className="sess-empty">저장된 대화가 없습니다.</div>
+          ) : (
+            sessions.map((s) => (
+              <div key={s.id} className={`sess-row ${s.id === activeId ? 'on' : ''}`}>
+                <button
+                  className="sess-pick"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onSwitchSession(s.id);
+                    setShowSessions(false);
+                  }}
+                >
+                  <span className="sess-title">{s.title}</span>
+                  <span className="sess-time">{formatWhen(s.updatedAt)}</span>
+                </button>
+                <button
+                  className="sess-del"
+                  type="button"
+                  title="대화 삭제"
+                  aria-label={`대화 삭제: ${s.title}`}
+                  onClick={() => onDeleteSession(s.id)}
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       <div className="mode-bar">
         <span className="mode-lbl">눈높이</span>
@@ -153,7 +164,7 @@ export default function ChatPanel({
             type="button"
             className={mode === 'technical' ? 'on' : ''}
             aria-pressed={mode === 'technical'}
-            onClick={() => setMode('technical')}
+            onClick={() => onModeChange('technical')}
           >
             기술
           </button>
@@ -161,7 +172,7 @@ export default function ChatPanel({
             type="button"
             className={mode === 'hr' ? 'on' : ''}
             aria-pressed={mode === 'hr'}
-            onClick={() => setMode('hr')}
+            onClick={() => onModeChange('hr')}
           >
             HR
           </button>
@@ -173,7 +184,7 @@ export default function ChatPanel({
         loading={loading}
         error={error}
         emptyHint={EMPTY_HINT}
-        onRetry={retry}
+        onRetry={onRetry}
       />
 
       <Composer
@@ -181,7 +192,7 @@ export default function ChatPanel({
         suggestionLabel={contextPointId ? '관련 질문' : '추천 질문'}
         showSuggestions={messages.length === 0}
         disabled={loading}
-        onSend={send}
+        onSend={onSend}
       />
     </div>
   );

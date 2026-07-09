@@ -21,11 +21,19 @@ export interface PointRef {
   title: string;
 }
 
-/** POST /api/chat 요청 바디. session_id 는 쿠키로 별도 동봉(바디에 없음). */
+/** POST /api/chat 요청 바디. */
 export interface ChatRequestBody {
   question: string;
   context?: string | null; // 진입 맥락 = 보던 포인트 id 또는 null(무맥락)
   mode?: "technical" | "hr"; // 답변 눈높이(v2 모드 토글). 생략 시 BE 기본 technical
+  sessionId?: string; // FE 소유 대화 세션 id(be/chat: session_id 별칭). 어느 채팅에 쌓을지 명시
+}
+
+/** GET /api/chat/history 한 턴. role 은 BE 스키마(user|assistant) 그대로. */
+export interface HistoryTurn {
+  role: "user" | "assistant";
+  text: string;
+  citations?: Citation[];
 }
 
 /** 스트리밍 이벤트 핸들러 묶음. */
@@ -145,6 +153,39 @@ export async function streamChat(
   } catch {
     if (signal?.aborted) return;
     handlers.onError("답변 도중 연결이 끊겼습니다. 다시 시도해 주세요.");
+  }
+}
+
+/**
+ * GET /api/chat/history?session=<id> — 세션 대화 이력 복원(재오픈·새로고침·세션 전환).
+ * 없는/만료 세션·오류면 빈 배열. 서버가 이력 본체를 보관하므로 로컬 저장은 하지 않는다.
+ */
+export async function fetchHistory(
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<HistoryTurn[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/chat/history?session=${encodeURIComponent(sessionId)}`,
+      { credentials: "include", signal },
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter(
+        (t: unknown): t is HistoryTurn =>
+          !!t &&
+          typeof (t as HistoryTurn).role === "string" &&
+          typeof (t as HistoryTurn).text === "string",
+      )
+      .map((t) => ({
+        role: t.role === "assistant" ? "assistant" : "user",
+        text: t.text,
+        citations: Array.isArray(t.citations) ? t.citations : [],
+      }));
+  } catch {
+    return [];
   }
 }
 

@@ -32,11 +32,17 @@ class Turn(CamelModel):
 
 
 class ChatRequest(CamelModel):
-    """POST /api/chat 요청 바디. session_id 는 세션 쿠키로 별도 수신(바디에 없음)."""
+    """POST /api/chat 요청 바디.
+
+    session_id: FE(브라우저)가 소유하는 대화 세션 식별자. 다중 채팅·새 채팅을 FE가
+    localStorage 로 관리하므로 어느 세션에 쌓을지 FE 가 명시한다. 없으면(구버전 FE)
+    쿠키 폴백 → 그것도 없으면 서버가 새로 발급한다.
+    """
 
     question: str
     context: str | None = None  # 진입 맥락 = 보던 포인트 id 또는 null(무맥락)
     mode: str = "technical"  # 답변 눈높이(v2 모드 토글): "technical" | "hr". 미지 값은 technical 폴백
+    session_id: str | None = None  # FE 소유 세션 id(camelCase: sessionId). 생략 시 쿠키·신규 폴백
 
 
 class Session(CamelModel):

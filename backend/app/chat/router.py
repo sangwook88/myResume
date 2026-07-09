@@ -20,7 +20,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.chat import service
-from app.chat.models import ChatRequest
+from app.chat.models import ChatRequest, Turn
 from app.chat.session import new_session_id
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -50,11 +50,12 @@ def _format(ev: dict) -> str:
 
 @router.post("")
 async def post_chat(req: ChatRequest, request: Request) -> StreamingResponse:
-    """질문을 받아 SSE 로 답변을 스트리밍한다. 세션 쿠키가 없으면 새로 발급한다."""
-    session_id = request.cookies.get(COOKIE_NAME)
-    is_new = session_id is None
-    if is_new:
-        session_id = new_session_id()
+    """질문을 받아 SSE 로 답변을 스트리밍한다.
+
+    세션 식별: FE 가 바디로 준 session_id 우선(다중 채팅) → 없으면 쿠키 폴백 →
+    그것도 없으면 서버가 새로 발급. 활성 세션은 쿠키로도 내려 구버전·no-JS 경로를 지킨다.
+    """
+    session_id = req.session_id or request.cookies.get(COOKIE_NAME) or new_session_id()
 
     async def event_stream() -> AsyncIterator[str]:
         async for ev in service.answer_stream(session_id, req.question, req.context, mode=req.mode):
@@ -72,6 +73,17 @@ async def post_chat(req: ChatRequest, request: Request) -> StreamingResponse:
         samesite="lax",
     )
     return response
+
+
+@router.get("/history", response_model=list[Turn])
+async def get_history(
+    session: str = Query(..., description="복원할 대화 세션 id(FE 소유)"),
+) -> list[Turn]:
+    """세션의 대화 이력(turns)을 반환한다. 없는/만료된 세션이면 빈 배열.
+
+    FE 가 재오픈·새로고침·세션 전환 시 로그를 복원하는 데 쓴다(로컬 저장 없음, #5).
+    """
+    return service.history(session)
 
 
 @router.get("/suggestions", response_model=list[str])

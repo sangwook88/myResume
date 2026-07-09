@@ -197,8 +197,24 @@ table.opt td.pick { font-weight: 700; color: #0a7; text-align: center; }
 .ph .ttl { font-weight: 700; font-size: 14px; }
 .ph .ctx { font-size: 11px; color: #5a7; background: #e7f7ee; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
 .ph .ctx.none { color: #778; background: #eef0f4; }
-.ph .x { margin-left: auto; border: none; background: none; font-size: 22px; cursor: pointer; color: #889; line-height: 1; padding: 2px 8px; }
+.ph .ph-act { border: none; background: none; font-size: 16px; cursor: pointer; color: #7a8699; line-height: 1; padding: 3px 7px; border-radius: 7px; }
+.ph .ph-act:hover { color: #333; background: #eef2f8; }
+.ph .ph-act.lead { margin-left: auto; }
+.ph .x { border: none; background: none; font-size: 22px; cursor: pointer; color: #889; line-height: 1; padding: 2px 8px; }
 .ph .x:hover { color: #333; }
+
+/* 대화 목록(세션 전환) 드롭다운 — 헤더 아래 오버레이 */
+.sess-menu { position: absolute; top: 50px; left: 10px; right: 10px; z-index: 5; max-height: 250px; overflow-y: auto; background: #fff; border: 1px solid #dbe2ee; border-radius: 12px; box-shadow: 0 14px 34px rgba(20, 30, 60, .2); padding: 6px; }
+.sess-empty { padding: 16px; text-align: center; color: #94a0b3; font-size: 12.5px; }
+.sess-row { display: flex; align-items: center; border-radius: 8px; }
+.sess-row:hover { background: #f4f7fc; }
+.sess-row.on { background: #eef4ff; }
+.sess-pick { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: none; background: none; cursor: pointer; padding: 8px 10px; text-align: left; }
+.sess-title { max-width: 100%; font-size: 13px; color: #2a3242; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sess-row.on .sess-title { font-weight: 700; color: var(--primary); }
+.sess-time { font-size: 11px; color: #94a0b3; }
+.sess-del { border: none; background: none; cursor: pointer; color: #aab3c2; font-size: 16px; line-height: 1; padding: 6px 9px; flex: none; }
+.sess-del:hover { color: #c0392b; }
 
 /* v2 모드 토글 바 (기술/HR 눈높이) */
 .mode-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line-soft); background: #fff; }

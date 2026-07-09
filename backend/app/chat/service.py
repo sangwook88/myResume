@@ -308,6 +308,21 @@ async def answer_stream(
     yield {"type": "done"}
 
 
+def history(session_id: str, *, store: SessionStore | None = None) -> list[Turn]:
+    """세션의 대화 이력(turns)을 반환한다. 없는/만료/스토어 오류면 빈 리스트.
+
+    FE 가 재오픈·새로고침·세션 전환 시 이 이력으로 로그를 복원한다(로컬 저장 없음).
+    Redis 미접속 등 스토어 오류는 삼켜 빈 이력으로 취급한다(챗봇은 계속 동작).
+    """
+    store = store or SessionStore()
+    try:
+        session = store.load(session_id)
+    except Exception:  # noqa: BLE001 — 스토어 장애는 빈 이력으로 폴백(가용성 우선)
+        logger.exception("세션 이력 로드 실패 — 빈 이력 반환.")
+        return []
+    return session.turns if session is not None else []
+
+
 async def suggest(
     point_id: str,
     *,

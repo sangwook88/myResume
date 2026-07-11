@@ -13,11 +13,11 @@
   --fg: #1b1b1d;          /* on-surface (본문) */
   --muted: #45464d;       /* on-surface-variant */
   --subtle: #64748b;      /* 캡션·메타 */
-  --line: #e2e8f0;        /* outline (기본 경계) */
-  --line-soft: #eef2f6;   /* 얕은 구분선 */
-  --bg: #fcf8fa;          /* surface (메인 배경) */
+  --line: #e4e8ee;        /* outline (기본 경계) */
+  --line-soft: #eef1f5;   /* 얕은 구분선 */
+  --bg: #f9fafb;          /* surface (메인 배경 — 중성 쿨그레이) */
   --surface: #ffffff;     /* container-lowest (카드 내부·패널) */
-  --card: #f8fafc;        /* 카드/컨테이너 표면 (cool gray) */
+  --card: #f3f5f8;        /* 카드/컨테이너 표면 (cool gray) */
 
   --slate: #0f172a;       /* primary — 제목·기본 버튼·다크 코드 표면 */
   --slate-2: #1e293b;
@@ -77,7 +77,7 @@ a:hover { text-decoration: underline; }
   justify-content: space-between;
   gap: 16px;
   padding: 14px 24px;
-  background: rgba(252, 248, 250, 0.85);
+  background: rgba(249, 250, 251, 0.85);
   backdrop-filter: saturate(180%) blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -475,6 +475,118 @@ table.opt td.pick {
   .page { padding: 28px 20px 120px; }
   h1 { font-size: 27px; }
 }
+
+/* ============================================================
+   포인트 상세 — 2단 팸플릿 레이아웃 + 우측 스티키 탐색 레일
+   좌: 읽기폭 제한 케이스 스터디 / 우: 스크롤 추적 목차 + 근거 챗봇
+   ============================================================ */
+.point-wrap {
+  max-width: 1160px; margin: 0 auto; padding: 44px 32px 120px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 60px; align-items: start;
+}
+.point-main { min-width: 0; }
+.point-main > * { max-width: 680px; }        /* 읽기 폭 제한(~65자) */
+.point-main section { scroll-margin-top: 84px; } /* 앵커 점프 시 브랜드바 아래로 */
+
+/* 읽기 진행 바 */
+.reading-progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0;
+  background: var(--accent); z-index: 60; transition: width .1s linear;
+}
+@media (prefers-reduced-motion: reduce) { .reading-progress { transition: none; } }
+
+/* 섹션 라벨 번호 */
+.section-label .n { font-variant-numeric: tabular-nums; color: var(--subtle); margin-right: 6px; }
+
+/* 포인트 헤더 리드/메타 */
+.point-lede { color: var(--muted); font-size: 19px; line-height: 1.6; margin: 0 0 20px; }
+.point-meta {
+  display: flex; gap: 22px; flex-wrap: wrap; padding: 14px 0; margin: 6px 0 8px;
+  border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
+  font-family: var(--font-ui); font-size: 13px; color: var(--subtle);
+}
+.point-meta b { color: var(--fg); font-weight: 600; }
+
+/* ===== 우측 스티키 레일 ===== */
+.point-rail { position: sticky; top: 80px; align-self: start; display: flex; flex-direction: column; gap: 18px; }
+.rail-card { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+.rail-head {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--subtle); padding: 13px 16px 9px;
+}
+
+/* 목차(스크롤 추적) */
+.toc { list-style: none; margin: 0; padding: 0 8px 10px; }
+.toc a {
+  display: flex; align-items: baseline; gap: 9px; font-family: var(--font-ui); font-size: 13.5px;
+  color: var(--muted); padding: 7px 10px; border-radius: 7px; border-left: 2px solid transparent;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.toc a .num { font-size: 11px; color: var(--subtle); font-variant-numeric: tabular-nums; flex: none; }
+.toc a:hover { background: var(--card); color: var(--fg); text-decoration: none; }
+.toc a.active { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.toc a.active .num { color: var(--accent); }
+
+/* 레일 챗봇(맥락 질문 → 기존 패널로 전송) */
+.rail-chat-head { display: flex; align-items: center; gap: 8px; padding: 13px 16px 6px; }
+.rail-chat-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.rail-chat-head .t { font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--fg); }
+.rail-chat-head .ctx {
+  margin-left: auto; font-family: var(--font-ui); font-size: 10.5px; color: var(--accent-dark);
+  background: var(--accent-soft); border-radius: 20px; padding: 2px 9px; white-space: nowrap;
+}
+.rail-chat-sub { font-size: 12px; color: var(--subtle); padding: 0 16px 10px; }
+.rail-chips { display: flex; flex-direction: column; gap: 6px; padding: 4px 14px; }
+.rail-chips .clbl {
+  font-family: var(--font-ui); font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--subtle); margin-bottom: 2px;
+}
+.rail-chip {
+  text-align: left; font-family: var(--font-ui); font-size: 12.5px; line-height: 1.35;
+  border: 1px solid var(--line); background: var(--surface); color: var(--accent);
+  border-radius: 9px; padding: 8px 11px; cursor: pointer; transition: background .15s, border-color .15s;
+}
+.rail-chip:hover { background: var(--accent-soft); border-color: var(--accent); }
+.rail-composer { display: flex; gap: 7px; padding: 10px 14px 14px; }
+.rail-composer input {
+  flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  border-radius: 20px; padding: 8px 13px; font-size: 13px; font-family: var(--font-body); outline: none;
+}
+.rail-composer input:focus { border-color: var(--accent); }
+.rail-composer button {
+  flex: none; width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 15px; display: grid; place-items: center;
+}
+.rail-composer button:hover { background: var(--accent-dark); }
+
+/* 반응형: 레일을 본문 아래로 */
+@media (max-width: 940px) {
+  .point-wrap { grid-template-columns: 1fr; gap: 32px; }
+  .point-rail { position: static; }
+  .point-main > * { max-width: none; }
+}
+@media (max-width: 560px) {
+  .point-wrap { padding: 28px 20px 90px; }
+}
+
+/* ===== 랜딩 탐색 레일(기술 스택 필터) ===== */
+.landing-main { min-width: 0; }
+.facets { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 14px 10px; }
+.facet {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  border-radius: 20px; padding: 5px 12px; cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.facet:hover { border-color: var(--accent); color: var(--accent); }
+.facet.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rail-reset {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  font-family: var(--font-ui); font-size: 12px; color: var(--subtle); padding: 0 16px 12px;
+}
+.rail-reset:hover { color: var(--accent); text-decoration: underline; }
+.filter-note { font-family: var(--font-ui); font-size: 13px; color: var(--subtle); margin: 0 0 8px; }
+.card .stackline { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 4px; }
 
 /* ============================================================
    모션 레이어 — "Kinetic Engineering": 짧고 정밀한 ease-out.

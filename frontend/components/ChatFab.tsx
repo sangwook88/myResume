@@ -48,6 +48,7 @@ function turnsToMessages(turns: HistoryTurn[]): ChatMessage[] {
 
 export default function ChatFab() {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false); // 슬라이드아웃 애니메이션 동안 패널 유지
   const [pending, setPending] = useState<string | null>(null);
   const pathname = usePathname();
   const contextPointId = derivePointContext(pathname);
@@ -215,10 +216,22 @@ export default function ChatFab() {
     }
   }, [pending, send]);
 
+  // 닫기: 도크를 슬라이드아웃시키고(본문 셸도 동기로 복귀) 애니메이션 후 언마운트.
   const close = useCallback(() => {
-    setOpen(false);
     setPending(null);
+    setClosing(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 260);
   }, []);
+
+  // 도크 열림 상태를 body 클래스로 반영 → CSS 가 본문 셸(.app-shell)을 왼쪽으로 민다.
+  // 닫는 중(closing)엔 즉시 해제해 셸이 패널 슬라이드아웃과 함께 되돌아온다.
+  useEffect(() => {
+    document.body.classList.toggle('chat-docked', open && !closing);
+    return () => document.body.classList.remove('chat-docked');
+  }, [open, closing]);
 
   return (
     <>
@@ -238,6 +251,7 @@ export default function ChatFab() {
       </button>
       {open && (
         <ChatPanel
+          closing={closing}
           contextPointId={contextPointId}
           messages={messages}
           loading={loading}

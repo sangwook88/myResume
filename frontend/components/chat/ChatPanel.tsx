@@ -30,6 +30,7 @@ function formatWhen(ts: number): string {
 }
 
 export default function ChatPanel({
+  closing,
   contextPointId,
   messages,
   loading,
@@ -45,6 +46,7 @@ export default function ChatPanel({
   onSwitchSession,
   onDeleteSession,
 }: {
+  closing: boolean;
   contextPointId: string | null;
   messages: ChatMessage[];
   loading: boolean;
@@ -94,7 +96,12 @@ export default function ChatPanel({
   const ctxLabel = contextPointId ? '맥락: 이 포인트' : '맥락: 전역';
 
   return (
-    <div className="panel" role="dialog" aria-label="포트폴리오 챗봇" aria-modal="false">
+    <div
+      className={`panel ${closing ? 'panel-closing' : ''}`}
+      role="dialog"
+      aria-label="포트폴리오 챗봇"
+      aria-modal="false"
+    >
       <div className="ph">
         <span className="dot" aria-hidden="true"></span>
         <span className="ttl">포트폴리오 챗봇</span>

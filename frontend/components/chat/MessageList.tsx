@@ -2,8 +2,11 @@
 
 // fe/chat — 대화 로그. 말풍선 멀티턴 + 답변 하단 근거 링크(외부 새 탭).
 // role="log" + aria-live="polite"(요소/질문-응답 접근성). 스트리밍 중엔 로딩 인디케이터.
+// 봇 답변은 마크다운으로 렌더(react-markdown+gfm) — 목록·코드·표·강조를 서식대로.
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Citation, PointRef } from '@/lib/chatClient';
 
 export interface ChatMessage {
@@ -36,10 +39,12 @@ export default function MessageList({
 }) {
   const endRef = useRef<HTMLDivElement>(null);
 
-  // 새 토큰·메시지마다 최신으로 스크롤.
+  // 스트리밍 토큰마다 스크롤하면 읽는 중에 화면이 계속 밀려 방해된다 →
+  // "새 턴(말풍선 추가·에러)"일 때만 최신으로 이동하고, 답변이 흘러내리는 동안엔
+  // 스크롤을 건드리지 않아 사용자가 위에서부터 읽을 수 있게 한다.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages, loading, error]);
+  }, [messages.length, error]);
 
   const last = messages[messages.length - 1];
   const showTyping = loading && (!last || last.role !== 'bot' || last.text === '');
@@ -55,7 +60,22 @@ export default function MessageList({
 
       {messages.map((m, i) => (
         <div key={i} className={`bubble ${m.role === 'user' ? 'me' : 'bot'}`}>
-          {m.text}
+          {m.role === 'bot' ? (
+            <div className="md">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ node, ...props }) => (
+                    <a target="_blank" rel="noopener noreferrer" {...props} />
+                  ),
+                }}
+              >
+                {m.text}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            m.text
+          )}
           {m.citations && m.citations.length > 0 && (
             <div className="evi">
               <div className="lbl">근거</div>

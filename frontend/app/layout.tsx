@@ -33,14 +33,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable}`}
     >
       <body>
-        <header className="brandbar">
-          <Link className="brand" href="/">근거기반 포트폴리오</Link>
-          <nav className="brandnav" aria-label="주요 이동">
-            <Link href="/">Projects</Link>
-          </nav>
-        </header>
-        {children}
-        {/* 전역 우하단 FAB — 대화 UI는 fe/chat 소관. 맥락(포인트 id)은 URL에서 파생. */}
+        {/* 본문 셸 — 챗봇 도크가 열리면(body.chat-docked) 오른쪽으로 밀려 왼쪽으로 이동한다. */}
+        <div className="app-shell">
+          <header className="brandbar">
+            <Link className="brand" href="/">근거기반 포트폴리오</Link>
+            <nav className="brandnav" aria-label="주요 이동">
+              <Link href="/">Projects</Link>
+            </nav>
+          </header>
+          {children}
+        </div>
+        {/* 전역 우측 도크 FAB — 대화 UI는 fe/chat 소관. 맥락(포인트 id)은 URL에서 파생. */}
         <ChatFab />
       </body>
     </html>

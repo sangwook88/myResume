@@ -186,6 +186,11 @@ export default function ChatPanel({
         </div>
       </div>
 
+      <div className="chat-notice" role="note">
+        <span aria-hidden="true">⚠️</span> 같은 질문을 <b>3회</b> 반복하거나,
+        포트폴리오와 <b>무관한 질문을 5회 연속</b> 보내면 일시적으로 차단됩니다.
+      </div>
+
       <MessageList
         messages={messages}
         loading={loading}

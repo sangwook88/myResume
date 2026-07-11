@@ -432,6 +432,13 @@ table.opt td.pick {
 .mode-seg button + button { border-left: 1px solid #d3dae6; }
 .mode-seg button.on { background: var(--primary); color: #fff; }
 
+/* 남용 방지 규칙 고지(빨간 배너) — 반복·오프토픽 밴 정책을 미리 알린다. */
+.chat-notice {
+  padding: 8px 14px; background: #fff4f2; color: #c0281a;
+  border-bottom: 1px solid #f3c9c0; font-size: 11.5px; line-height: 1.5;
+}
+.chat-notice b { font-weight: 700; }
+
 .log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #fbfcfe; }
 .chat-empty { margin: auto; text-align: center; color: #94a0b3; font-size: 13px; padding: 20px; }
 .chat-empty .big { font-size: 30px; display: block; margin-bottom: 8px; }

@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getProjectIndex } from '@/lib/api';
+import Reveal from '@/components/Reveal';
 
 export default async function ProjectIndexPage({
   params,
@@ -14,7 +15,7 @@ export default async function ProjectIndexPage({
   if (!project) redirect('/');
 
   return (
-    <main className="page">
+    <main className="page reveal">
       <div className="topbar">
         <Link className="back" href="/">← 랜딩</Link>
         <span>{project.slug}</span>
@@ -59,11 +60,13 @@ export default async function ProjectIndexPage({
       {project.points.length > 0 && (
         <>
           <h3>포폴 포인트 목록 (published)</h3>
-          {project.points.map((pt) => (
-            <Link key={pt.id} className="card card-row" href={`/points/${encodeURIComponent(pt.id)}`}>
-              <span className="t">{pt.title}</span>
-              <span className="chev">›</span>
-            </Link>
+          {project.points.map((pt, i) => (
+            <Reveal key={pt.id} index={i}>
+              <Link className="card card-row" href={`/points/${encodeURIComponent(pt.id)}`}>
+                <span className="t">{pt.title}</span>
+                <span className="chev">›</span>
+              </Link>
+            </Reveal>
           ))}
         </>
       )}

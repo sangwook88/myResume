@@ -9,6 +9,7 @@ import EvidenceList from '@/components/EvidenceList';
 import AskChips from '@/components/AskChips';
 import AskSectionButton from '@/components/AskSectionButton';
 import SelectionAsk from '@/components/SelectionAsk';
+import Reveal from '@/components/Reveal';
 
 export default async function PointDetailPage({
   params,
@@ -34,7 +35,7 @@ export default async function PointDetailPage({
   ].filter((q): q is string => q !== null).slice(0, 3);
 
   return (
-    <main className="page" id="point-body">
+    <main className="page reveal" id="point-body">
       {/* v3 인라인 선택-질문: 본문(#point-body) 텍스트 드래그 선택 → 플로팅 버튼 → 챗봇 자동 질문 */}
       <SelectionAsk containerId="point-body" />
       <div className="topbar">
@@ -123,11 +124,13 @@ export default async function PointDetailPage({
       {siblings.length > 0 && (
         <section>
           <div className="section-label">같은 프로젝트의 다른 포인트</div>
-          {siblings.map((p) => (
-            <Link key={p.id} className="card card-row" href={`/points/${encodeURIComponent(p.id)}`}>
-              <span className="t">{p.title}</span>
-              <span className="chev">›</span>
-            </Link>
+          {siblings.map((p, i) => (
+            <Reveal key={p.id} index={i}>
+              <Link className="card card-row" href={`/points/${encodeURIComponent(p.id)}`}>
+                <span className="t">{p.title}</span>
+                <span className="chev">›</span>
+              </Link>
+            </Reveal>
           ))}
         </section>
       )}

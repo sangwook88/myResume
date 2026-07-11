@@ -475,3 +475,98 @@ table.opt td.pick {
   .page { padding: 28px 20px 120px; }
   h1 { font-size: 27px; }
 }
+
+/* ============================================================
+   모션 레이어 — "Kinetic Engineering": 짧고 정밀한 ease-out.
+   진입 리빌 / 패널·FAB 트랜지션 / 마이크로 인터랙션 / 스켈레톤.
+   ============================================================ */
+
+/* 표준 이징: 빠르게 시작해 부드럽게 멈추는 엔지니어링 감속 곡선 */
+:root { --ease-out: cubic-bezier(.22, .61, .36, 1); }
+
+/* ── 진입 리빌 (위로 떠오르며 페이드) ──
+   .reveal = 로드 즉시 재생(어보브폴드 히어로). --i 로 계단식 지연(stagger). */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0;
+  animation: rise .5s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* ── 스크롤 진입 리빌 (Reveal 컴포넌트가 뷰포트 진입 시 .is-visible 토글) ── */
+.reveal-scroll {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity .5s var(--ease-out),
+    transform .5s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 55ms);
+  will-change: opacity, transform;
+}
+.reveal-scroll.is-visible { opacity: 1; transform: none; }
+
+/* ── 카드 마이크로 인터랙션 ── */
+.card .chev, .card-row .chev { transition: transform .16s var(--ease-out); }
+.card:hover .chev, .card-row:hover .chev { transform: translateX(4px); }
+
+/* 누르는 촉감 — 주요 인터랙티브 요소에 살짝 눌림 */
+.card:active { transform: translateY(0) scale(.995); }
+.back:active, .ask-sec:active, .ask-chip:active,
+.chip:active, .inputbar button:active:not(:disabled), .fab:active {
+  transform: scale(.96);
+}
+
+/* ── FAB 팝인 (재오픈 때마다 경쾌하게 다시 등장) ── */
+@keyframes fab-pop {
+  from { opacity: 0; transform: scale(.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.fab { animation: fab-pop .28s cubic-bezier(.34, 1.4, .64, 1); }
+
+/* ── 챗봇 패널 열림 (우하단에서 떠오르며 스케일업) ── */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.panel { animation: panel-in .22s var(--ease-out); transform-origin: bottom right; }
+
+/* 봇 말풍선이 새로 붙을 때 살짝 떠오름 */
+.bubble.bot { animation: rise .28s var(--ease-out); }
+
+/* 세션 드롭다운 열림 */
+.sess-menu { animation: rise .16s var(--ease-out); transform-origin: top; }
+
+/* ── 로딩 스켈레톤 (shimmer) ── */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skel-title { height: 40px; width: 42%; margin: 10px 0; }
+.skel-sub { height: 20px; width: 72%; margin-bottom: 28px; }
+.skel-card { height: 74px; margin: 12px 0; }
+
+/* ── 접근성: 모션 최소화 선호 시 모든 애니메이션 무력화(콘텐츠는 즉시 노출) ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal, .reveal-scroll { opacity: 1 !important; transform: none !important; }
+}

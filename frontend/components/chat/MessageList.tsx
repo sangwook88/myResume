@@ -3,7 +3,7 @@
 // fe/chat — 대화 로그. 말풍선 멀티턴 + 답변 하단 근거 링크(외부 새 탭).
 // role="log" + aria-live="polite"(요소/질문-응답 접근성). 스트리밍 중엔 로딩 인디케이터.
 // 봇 답변은 마크다운으로 렌더(react-markdown+gfm) — 목록·코드·표·강조를 서식대로.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -22,6 +22,39 @@ const KIND_CLASS = new Set(['commit', 'pr', 'swagger']);
 function citationClass(kind: string): string {
   const k = kind.toLowerCase();
   return KIND_CLASS.has(k) ? k : '';
+}
+
+// 근거는 상위 3개만 펼쳐 보이고, 나머지는 접어 둔다.
+// 전역 채팅에선 근거가 대량으로 붙어 답변을 밀어내기 때문.
+const CITATIONS_HEAD = 3;
+function Citations({ citations }: { citations: Citation[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const rest = citations.length - CITATIONS_HEAD;
+  const shown = expanded ? citations : citations.slice(0, CITATIONS_HEAD);
+
+  return (
+    <div className="evi">
+      <div className="lbl">근거</div>
+      {shown.map((c, j) => (
+        <a key={j} href={c.url} target="_blank" rel="noopener noreferrer">
+          <span className={`tag2 ${citationClass(c.kind)}`}>{c.kind}</span>
+          <span className="lbltext">{c.label}</span>
+          <span className="ext" aria-hidden="true">새 탭 ↗</span>
+        </a>
+      ))}
+      {rest > 0 && (
+        <button
+          type="button"
+          className="rel-more"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? '접기' : `${rest}개 더 보기`}
+          <span className="chev" aria-hidden="true">{expanded ? '⌃' : '⌄'}</span>
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function MessageList({
@@ -77,16 +110,7 @@ export default function MessageList({
             m.text
           )}
           {m.citations && m.citations.length > 0 && (
-            <div className="evi">
-              <div className="lbl">근거</div>
-              {m.citations.map((c, j) => (
-                <a key={j} href={c.url} target="_blank" rel="noopener noreferrer">
-                  <span className={`tag2 ${citationClass(c.kind)}`}>{c.kind}</span>
-                  <span className="lbltext">{c.label}</span>
-                  <span className="ext" aria-hidden="true">새 탭 ↗</span>
-                </a>
-              ))}
-            </div>
+            <Citations citations={m.citations} />
           )}
           {m.points && m.points.length > 0 && (
             <div className="rel-points">

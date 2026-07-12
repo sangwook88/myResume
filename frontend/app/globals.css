@@ -367,6 +367,9 @@ table.opt td.pick {
 .rel-point:hover { background: #e8f0ff; border-color: #b8cdf3; }
 .rel-point .lbltext { flex: 1; min-width: 0; }
 .rel-point .chev { color: #9aa7bd; flex: none; }
+.rel-more { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: #5b6b85; background: none; border: none; cursor: pointer; padding: 6px 8px; margin-top: 2px; }
+.rel-more:hover { color: #2256c6; }
+.rel-more .chev { color: inherit; flex: none; }
 
 /* ===== 빈 상태 ===== */
 .empty-state {

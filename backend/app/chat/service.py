@@ -41,7 +41,9 @@ REFUSAL = "제공된 포트폴리오 근거에서 답변할 수 있는 내용을
 CITATION_SENTINEL = "\n###CITATIONS###\n"
 _TOKEN_RE = re.compile(r"E\d+")
 
-_ANSWER_SYSTEM = """\
+# 캐시 프리픽스(ARCHITECTURE §v4-B): 고정 지시문 + 코퍼스만. 요청마다 안 바뀌는 것만 둔다
+# → 같은 published 집합이면 바이트 동일 → 프롬프트 캐시 적중. tone·진입 맥락은 여기 넣지 않는다.
+_ANSWER_PREFIX = """\
 너는 근거기반 포트폴리오 챗봇이다. 아래 <코퍼스> 안의 내용만을 근거로 답한다.
 
 규칙:
@@ -50,14 +52,17 @@ _ANSWER_SYSTEM = """\
 - 답변에 사용한 근거가 있으면, 답변 본문을 모두 쓴 뒤 마지막 줄에
   "{sentinel_marker}" 를 출력하고 그 다음 줄에 사용한 근거 토큰(예: E1, E3)을
   쉼표로 나열한다. 근거 토큰이 없으면 이 구분자 자체를 출력하지 않는다.
-- 근거 토큰은 코퍼스의 [[E숫자]] 표기에서만 가져온다.
+- 근거 토큰은 코퍼스의 [[E숫자]] 표기에서만 가져온다. 각 근거 밑의 (상세)·(코드)는
+  맥락 보강용이며 인용 토큰을 새로 만들지 않는다.
 - 한국어로, 채용 담당자가 이해하기 쉽게 간결히 답한다.
-- 눈높이: {tone}
 
 <코퍼스>
 {corpus}
 </코퍼스>
 """
+
+# 가변 꼬리(캐시 밖): 눈높이(tone)·진입 맥락. 캐시 브레이크포인트 뒤라 매 요청 달라도 무방.
+_ANSWER_TAIL = "답변 눈높이: {tone}"
 
 # v2 모드 토글 — 답변 눈높이. 근거·거부 규칙은 그대로, 표현 수위만 바꾼다. 미지 값은 technical 폴백.
 _MODE_TONE = {
@@ -73,11 +78,20 @@ _SUGGEST_SYSTEM = """\
 """
 
 
+# 1시간 확장 프롬프트 캐시(ARCHITECTURE §v4-B). ttl:"1h" + 이 beta 헤더가 필요하다.
+_EXTENDED_TTL_BETA = "extended-cache-ttl-2025-04-11"
+
+
 class LLMClient(Protocol):
-    """LLM 이음매. 실제(AnthropicLLM)와 테스트용 가짜가 이 계약을 만족한다."""
+    """LLM 이음매. 실제(AnthropicLLM)와 테스트용 가짜가 이 계약을 만족한다.
+
+    stream_answer 는 system 을 **두 부분**으로 받는다(ARCHITECTURE §v4-B):
+    - prefix_text: 고정 지시문 + 코퍼스(캐시 대상 — 안정 프리픽스).
+    - tail_text: tone·진입 맥락(캐시 밖 — 매 요청 가변).
+    """
 
     def stream_answer(
-        self, system_text: str, messages: list[dict]
+        self, prefix_text: str, tail_text: str, messages: list[dict]
     ) -> AsyncIterator[str]: ...
 
     async def generate(self, system_text: str, user_text: str) -> str: ...
@@ -86,8 +100,10 @@ class LLMClient(Protocol):
 class AnthropicLLM:
     """LangChain(langchain-anthropic) 기반 Claude 스트리밍 클라이언트.
 
-    - system prefix(코퍼스)에 cache_control=ephemeral 을 걸어 프롬프트 캐싱(§1).
-    - 모델·타임아웃은 arch 규약을 따른다. API 키는 env ANTHROPIC_API_KEY.
+    프롬프트 캐싱(ARCHITECTURE §v4-B): system 첫 블록(고정 지시문+코퍼스)에만
+    cache_control(ttl 1h)을 걸어 안정 프리픽스로 캐시하고, tone·진입 맥락은 캐시 밖
+    두 번째 system 블록에 둔다. stream_usage=True 로 cache_read/creation 을 실측한다.
+    모델·타임아웃은 arch 규약. API 키는 env ANTHROPIC_API_KEY.
     """
 
     def __init__(self) -> None:
@@ -98,28 +114,33 @@ class AnthropicLLM:
             max_tokens=MAX_TOKENS,
             timeout=TIMEOUT_SECONDS,
             streaming=True,
+            stream_usage=True,  # usage_metadata 에 cache_read/creation 노출(실측)
+            betas=[_EXTENDED_TTL_BETA],  # 1h 확장 캐시 TTL 활성화
         )
 
     @staticmethod
-    def _to_lc_messages(system_text: str, messages: list[dict]):
+    def _to_lc_messages(system_blocks: list[tuple[str, bool]], messages: list[dict]):
+        """system_blocks = [(text, cache?)...] → SystemMessage(멀티 블록) + 대화 메시지.
+
+        cache=True 인 블록에만 cache_control(ttl 1h)을 건다. 캐시 프리픽스는 브레이크포인트
+        '앞'이어야 하므로 cache 블록을 먼저 배치한다(호출측 계약).
+        """
         from langchain_core.messages import (  # noqa: PLC0415
             AIMessage,
             HumanMessage,
             SystemMessage,
         )
 
-        # 코퍼스 prefix 에 캐시 브레이크포인트(cache_control) — 턴·사용자 간 재사용.
-        lc = [
-            SystemMessage(
-                content=[
-                    {
-                        "type": "text",
-                        "text": system_text,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ]
-            )
-        ]
+        content: list[dict] = []
+        for text, cache in system_blocks:
+            if not text:
+                continue
+            block: dict = {"type": "text", "text": text}
+            if cache:
+                block["cache_control"] = {"type": "ephemeral", "ttl": "1h"}
+            content.append(block)
+
+        lc = [SystemMessage(content=content)]
         for m in messages:
             if m["role"] == "assistant":
                 lc.append(AIMessage(content=m["content"]))
@@ -127,11 +148,27 @@ class AnthropicLLM:
                 lc.append(HumanMessage(content=m["content"]))
         return lc
 
+    @staticmethod
+    def _log_cache_usage(chunk) -> None:
+        """스트림 청크에 usage_metadata 가 있으면 캐시 읽기/쓰기 토큰을 로깅(실측)."""
+        usage = getattr(chunk, "usage_metadata", None)
+        if not usage:
+            return
+        details = usage.get("input_token_details") or {}
+        cache_read = details.get("cache_read", 0)
+        cache_creation = details.get("cache_creation", 0)
+        logger.info(
+            "prompt-cache usage — input=%s cache_read=%s cache_creation=%s",
+            usage.get("input_tokens"), cache_read, cache_creation,
+        )
+
     async def stream_answer(
-        self, system_text: str, messages: list[dict]
+        self, prefix_text: str, tail_text: str, messages: list[dict]
     ) -> AsyncIterator[str]:
-        lc = self._to_lc_messages(system_text, messages)
+        # 캐시 블록(고정+코퍼스) 먼저, 캐시 밖 꼬리(tone·진입) 뒤 — 브레이크포인트 이후는 미캐시.
+        lc = self._to_lc_messages([(prefix_text, True), (tail_text, False)], messages)
         async for chunk in self._llm.astream(lc):
+            self._log_cache_usage(chunk)
             content = chunk.content
             if isinstance(content, list):  # content block 리스트일 수 있음
                 content = "".join(
@@ -141,7 +178,9 @@ class AnthropicLLM:
                 yield content
 
     async def generate(self, system_text: str, user_text: str) -> str:
-        lc = self._to_lc_messages(system_text, [{"role": "user", "content": user_text}])
+        lc = self._to_lc_messages(
+            [(system_text, False)], [{"role": "user", "content": user_text}]
+        )
         resp = await self._llm.ainvoke(lc)
         content = resp.content
         if isinstance(content, list):
@@ -258,12 +297,18 @@ async def answer_stream(
         yield {"type": "done"}
         return
 
-    system_text = _ANSWER_SYSTEM.format(
+    # 캐시 프리픽스(고정 지시문+코퍼스) — 요청마다 안 바뀜(프리픽스 안정성, ARCHITECTURE §v4-B).
+    prefix_text = _ANSWER_PREFIX.format(
         refusal=REFUSAL,
         sentinel_marker=CITATION_SENTINEL.strip(),
         corpus=bundle.text,
-        tone=_MODE_TONE.get(mode, _MODE_TONE[_DEFAULT_MODE]),
     )
+    # 가변 꼬리(캐시 밖): tone + 진입 맥락 포인터. 모드 전환·진입점 변경이 프리픽스를 안 흔든다.
+    tail_parts = [_ANSWER_TAIL.format(tone=_MODE_TONE.get(mode, _MODE_TONE[_DEFAULT_MODE]))]
+    if bundle.entry_pointer:
+        tail_parts.append(bundle.entry_pointer)
+    tail_text = "\n".join(tail_parts)
+
     messages = _to_messages(session.turns)
     messages.append({"role": "user", "content": question})
 
@@ -272,7 +317,7 @@ async def answer_stream(
 
     try:
         async with asyncio.timeout(TIMEOUT_SECONDS):
-            async for chunk in llm.stream_answer(system_text, messages):
+            async for chunk in llm.stream_answer(prefix_text, tail_text, messages):
                 visible = splitter.feed(chunk)
                 if visible:
                     answer_parts.append(visible)

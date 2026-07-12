@@ -5,9 +5,11 @@ pydantic>=2.6
 PyYAML>=6.0
 
 # be/chat (v1 wave 3) 런타임 의존.
-# - langchain-anthropic: Claude claude-sonnet-5 스트리밍 + 프롬프트 캐싱(cache_control) 오케스트레이션(ARCHITECTURE §1·§4).
+# - langchain-anthropic: Claude claude-sonnet-5 스트리밍 + 프롬프트 캐싱 오케스트레이션.
+#   v4(ARCHITECTURE §v4-B): 안정 프리픽스(코퍼스)에 cache_control ttl:"1h"(betas=extended-cache-ttl-2025-04-11),
+#   stream_usage=True 로 cache_read 실측. → langchain-anthropic>=1.4(betas·stream_usage 지원) 필요.
 # - redis: 세션 이력 스토어(session_id → turns), TTL 1일 sliding(ARCHITECTURE §5).
-langchain-anthropic>=0.2
+langchain-anthropic>=1.4
 langchain-core>=0.3
 redis>=5.0
 

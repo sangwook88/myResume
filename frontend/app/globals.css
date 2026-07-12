@@ -262,6 +262,23 @@ table.opt td.pick {
   overflow-x: auto;
 }
 
+/* v4 아키텍처 도식(SVG). typst 도식은 대개 어두운 선/투명 배경이라 흰 카드 위에 올려
+   라이트·다크 어느 테마에서도 대비를 보장한다. 가로 넘치면 스크롤(페이지 본문은 안 밀림). */
+.archdiagram {
+  margin: 12px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--code-line);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  overflow-x: auto;
+}
+.archdiagram img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
 /* ===== Evidence 링크 (저필 배지) ===== */
 .evi-link {
   display: flex;

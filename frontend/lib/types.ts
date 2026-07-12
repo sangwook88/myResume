@@ -65,6 +65,8 @@ export interface ProjectIndex extends ProjectSummary {
   teamSize: string;
   techStack: string[];
   architecture: string;
+  /** 압축 아키텍처 도식(컴파일된 SVG)을 내보내는 API 경로. 없으면 null(도식 optional, v4). */
+  architectureDiagram?: string | null;
   highlights: string[];
   points: PointSummary[];
 }

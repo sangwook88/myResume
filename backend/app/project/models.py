@@ -31,5 +31,7 @@ class ProjectIndex(ProjectSummary):
     team_size: str
     tech_stack: list[str]
     architecture: str
+    # 압축 아키텍처 도식(컴파일된 SVG) 상대경로 — 없으면 None(도식 optional, ARCHITECTURE §v4-C).
+    architecture_diagram: str | None = None
     highlights: list[str]
     points: list[PointSummary]

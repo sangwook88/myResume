@@ -6,10 +6,10 @@ be/point와 동일하게 고정 경로를 먼저 둔다.
 
 from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
 
-from app.project import service
+from app.project import repository, service
 from app.project.models import ProjectIndex, ProjectSummary
 
 router = APIRouter(prefix="/api/projects", tags=["project"])
@@ -19,6 +19,21 @@ router = APIRouter(prefix="/api/projects", tags=["project"])
 def get_projects() -> list[ProjectSummary]:
     """카탈로그: 모든 프로젝트 요약(published 포인트 0개는 후순위). 없으면 []."""
     return service.list_projects()
+
+
+@router.get("/{slug}/architecture.svg")
+def get_architecture_svg(slug: str):
+    """컴파일된 아키텍처 도식 SVG 를 정적으로 내보낸다(ARCHITECTURE §v4-C).
+
+    slug 는 단일 디렉토리 세그먼트만 허용(경로 탈출·와일드카드 차단) — wiki 의 다른 파일
+    (`.md` 포인트·`.code.md` invidence 사이드카)은 절대 노출하지 않는다. 없으면 404.
+    """
+    if not slug or "/" in slug or "\\" in slug or slug in (".", ".."):
+        raise HTTPException(status_code=404)
+    svg = repository.WIKI_ROOT / slug / "architecture.svg"
+    if not svg.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(svg), media_type="image/svg+xml")
 
 
 @router.get("/{slug}", response_model=ProjectIndex)

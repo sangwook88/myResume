@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getProjectIndex } from '@/lib/api';
 import Reveal from '@/components/Reveal';
+import ArchitectureDiagram from '@/components/ArchitectureDiagram';
 
 export default async function ProjectIndexPage({
   params,
@@ -42,8 +43,16 @@ export default async function ProjectIndexPage({
         </>
       )}
 
-      <h3>아키텍처 개요</h3>
-      <div className="archbox">{project.architecture}</div>
+      {/* 아키텍처: v4 압축 도식(있으면 한눈에) + 긴 텍스트 개요. 도식 없으면 텍스트만(하위호환). */}
+      {(project.architectureDiagram || project.architecture) && (
+        <>
+          <h3>아키텍처 개요</h3>
+          {project.architectureDiagram && (
+            <ArchitectureDiagram src={project.architectureDiagram} />
+          )}
+          {project.architecture && <div className="archbox">{project.architecture}</div>}
+        </>
+      )}
 
       {project.highlights.length > 0 && (
         <>

@@ -55,6 +55,13 @@ def load_raw(path: Path) -> dict:
     if not architecture and body.strip():
         architecture = body.strip()
 
+    # 아키텍처 도식(ARCHITECTURE §v4-C): 컴파일된 SVG 존재를 단일 진실원으로 파생.
+    # 있으면 그 SVG 를 내보내는 API 경로(브라우저가 <img> 로 바로 쓸 수 있는 URL path),
+    # 없으면 None(도식 optional). 실제 서빙은 router 의 architecture.svg 전용 라우트.
+    svg = path.parent / "architecture.svg"
+    slug = path.parent.name
+    architecture_diagram = f"/api/projects/{slug}/architecture.svg" if svg.is_file() else None
+
     return {
         "slug": path.parent.name,  # 디렉토리 이름이 정본 slug
         "name": str(fm.get("name") or path.parent.name),  # 표시 이름(없으면 slug 폴백)
@@ -64,6 +71,7 @@ def load_raw(path: Path) -> dict:
         "team_size": str(fm.get("teamSize") or ""),
         "tech_stack": _as_list(fm.get("techStack")),
         "architecture": str(architecture or ""),
+        "architecture_diagram": architecture_diagram,
         "highlights": _as_list(fm.get("highlights")),
         "_path": str(path),
     }

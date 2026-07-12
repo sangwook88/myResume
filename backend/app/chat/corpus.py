@@ -44,6 +44,9 @@ class CorpusBundle:
     evidence: dict[str, Citation] = field(default_factory=dict)
     point_of_token: dict[str, dict] = field(default_factory=dict)  # E토큰 → 출처 포인트{id,title}(v2 딥링크)
     point_count: int = 0
+    # 진입 맥락(v4): 코퍼스를 재배치하는 대신 캐시 밖 꼬리에 넣을 짧은 포인터. 없으면 None.
+    # 이 필드는 text(캐시 프리픽스)에 영향 주지 않는다 — 프리픽스 안정성 보장(ARCHITECTURE §v4-B).
+    entry_pointer: str | None = None
 
     @property
     def has_content(self) -> bool:
@@ -110,47 +113,58 @@ def _render_point(
             evidence[token] = Citation(kind=ev.kind, label=ev.label, url=ev.url)
             point_of_token[token] = {"id": point.id, "title": point.title}
             lines.append(f"  - [[{token}]] kind={ev.kind} | {ev.label} | {ev.url}")
+            # invidence(v4): Evidence 밑 비인용 컨텍스트. ChatbotEvidence 일 때만 붙는다
+            # (getattr — 공개 Point/RAG 경로엔 없음). 인용 토큰은 부여하지 않는다.
+            detail = getattr(ev, "detail", None)
+            code = getattr(ev, "code", None)
+            if detail:
+                lines.append(f"    - (상세) {detail}")
+            if code:
+                lines.append("    - (코드)")
+                lines.append("      ```")
+                lines.extend(f"      {cl}" for cl in code.splitlines())
+                lines.append("      ```")
 
     return "\n".join(lines)
 
 
 def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
-    """published 전체를 load-all 해 캐시 가능한 컨텍스트로 조립한다.
+    """published 전체를 load-all 해 **캐시 가능한 안정 프리픽스**로 조립한다(ARCHITECTURE §v4-B).
 
-    context_point_id(진입 맥락)가 있으면 그 포인트를 코퍼스 맨 앞에 '가장 관련 있는
-    포인트'로 우선 배치한다(기능_답변생성.md). 없는/비공개 맥락이면 무시한다.
+    코퍼스 text 는 항상 **정준 순서**(프로젝트 slug 순 → 포인트)로만 만든다 — 진입 맥락으로
+    재배치하지 않는다(프리픽스 안정성). 진입 맥락은 text 에 섞지 않고 `entry_pointer`(캐시 밖
+    꼬리용 짧은 포인터)로 따로 반환한다. 각 포인트는 챗봇 전용 접근자로 읽어 invidence 를 싣는다.
     """
     evidence: dict[str, Citation] = {}
     point_of_token: dict[str, dict] = {}
     counter = [0]
-    blocks: list[str] = []
+    blocks: list[str] = ["# 전체 포트폴리오 코퍼스"]
     point_count = 0
 
-    priority_id: str | None = None
-    if context_point_id:
-        priority = point_service.get_published(context_point_id)
-        if priority is not None:
-            priority_id = priority.id
-            blocks.append("# 가장 관련 있는 포인트(진입 맥락)")
-            blocks.append(_render_point(priority, evidence, point_of_token, counter))
-            point_count += 1
-
-    blocks.append("# 전체 포트폴리오 코퍼스")
     for proj in project_service.list_projects():
         idx = project_service.get_index(proj.slug)
         if idx is None:
             continue
         blocks.append(_render_cover(idx))
         for summ in point_service.list_by_project(proj.slug):
-            if summ.id == priority_id:
-                continue  # 맨 앞에 이미 넣음(중복 방지)
-            point = point_service.get_published(summ.id)
+            point = point_service.get_chatbot_point(summ.id)  # invidence 포함(v4)
             if point is None:
                 continue
             blocks.append(_render_point(point, evidence, point_of_token, counter))
             point_count += 1
 
     text = "\n\n".join(blocks)
+
+    # 진입 맥락(있고 published면) → 재배치 대신 짧은 포인터. text 엔 영향 없음(프리픽스 안정).
+    entry_pointer: str | None = None
+    if context_point_id:
+        ctx = point_service.get_published(context_point_id)
+        if ctx is not None:
+            entry_pointer = (
+                f"방문자는 '{ctx.title}'(포인트 [{ctx.id}]) 화면에서 대화를 시작했다. "
+                "특별한 이유가 없으면 이 포인트를 우선 참고해 답하라."
+            )
+
     if len(text) > _BUDGET_WARN_CHARS:
         logger.warning(
             "load-all 코퍼스가 예산 경고 임계치 초과(%d자) — v1 은 그대로 시도하되 "
@@ -158,7 +172,11 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
             len(text),
         )
     return CorpusBundle(
-        text=text, evidence=evidence, point_of_token=point_of_token, point_count=point_count
+        text=text,
+        evidence=evidence,
+        point_of_token=point_of_token,
+        point_count=point_count,
+        entry_pointer=entry_pointer,
     )
 
 

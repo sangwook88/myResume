@@ -9,7 +9,15 @@
 from __future__ import annotations
 
 from app.point import repository
-from app.point.models import Evidence, Option, Point, PointSummary, Sections
+from app.point.models import (
+    ChatbotEvidence,
+    ChatbotPoint,
+    Evidence,
+    Option,
+    Point,
+    PointSummary,
+    Sections,
+)
 
 _FEATURED = "featured"
 
@@ -43,15 +51,11 @@ def list_by_project(project: str) -> list[PointSummary]:
     return [_to_summary(r) for r in pub]
 
 
-def get_published(point_id: str) -> Point | None:
-    """id로 published 단건 조회. 없거나 draft면 None(라우터가 302 처리)."""
-    raw = repository.find_raw_by_id(point_id)
-    if raw is None or raw.get("status") != "published":
-        return None
-
+def _sections_from_raw(raw: dict) -> Sections:
+    """raw dict의 sections 블록 → Sections DTO(공개·챗봇 경로 공용)."""
     sec = raw.get("sections") or {}
     options = [Option(**o) for o in sec.get("options", [])] if sec.get("options") else None
-    sections = Sections(
+    return Sections(
         background=sec.get("background"),
         problem=sec.get("problem"),
         options=options,
@@ -60,6 +64,17 @@ def get_published(point_id: str) -> Point | None:
         result=sec.get("result"),
         retrospective=sec.get("retrospective"),
     )
+
+
+def get_published(point_id: str) -> Point | None:
+    """id로 published 단건 조회. 없거나 draft면 None(라우터가 302 처리).
+
+    **공개 경로 — invidence(숨은 detail·code)는 절대 포함하지 않는다**(ARCHITECTURE §v4-A).
+    """
+    raw = repository.find_raw_by_id(point_id)
+    if raw is None or raw.get("status") != "published":
+        return None
+
     evidence = [Evidence(**e) for e in raw.get("evidence", [])]
     return Point(
         id=raw["id"],
@@ -67,6 +82,32 @@ def get_published(point_id: str) -> Point | None:
         tags=raw.get("tags") or [],
         project=raw["project"],
         summary=raw.get("summary") or "",
-        sections=sections,
+        sections=_sections_from_raw(raw),
+        evidence=evidence,
+    )
+
+
+def get_chatbot_point(point_id: str) -> ChatbotPoint | None:
+    """be/chat 코퍼스 전용 접근자 — published 단건 + invidence 부착(ARCHITECTURE §v4-A).
+
+    각 Evidence 에 순번(1-based) 매칭으로 숨은 detail·code 를 붙인다. 없거나 draft면 None.
+    공개 조회(get_published)와 물리 분리 — 이 함수만 `_invidence` 를 읽는다.
+    """
+    raw = repository.find_raw_by_id(point_id)
+    if raw is None or raw.get("status") != "published":
+        return None
+
+    invidence = raw.get("_invidence") or {}
+    evidence: list[ChatbotEvidence] = []
+    for i, e in enumerate(raw.get("evidence", []), start=1):
+        inv = invidence.get(i) or invidence.get(str(i)) or {}
+        evidence.append(ChatbotEvidence(**e, detail=inv.get("detail"), code=inv.get("code")))
+    return ChatbotPoint(
+        id=raw["id"],
+        title=raw["title"],
+        tags=raw.get("tags") or [],
+        project=raw["project"],
+        summary=raw.get("summary") or "",
+        sections=_sections_from_raw(raw),
         evidence=evidence,
     )

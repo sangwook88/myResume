@@ -28,6 +28,12 @@ WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(_DEFAULT_WIKI)))
 # 본문 텍스트 섹션(표가 아닌 것). options/evidence는 표라 별도 처리.
 _TEXT_SECTIONS = ("background", "problem", "decision", "execution", "result", "retrospective")
 
+# invidence(챗봇 전용 숨은 층 — ARCHITECTURE §v4-A) 헤딩.
+# 본문 숨은 섹션: `## 챗봇전용 [[E{n}]]` (n = 이 포인트 Evidence 배열의 1-based 순번).
+# 사이드카 <id>.code.md: `## [[E{n}]]`. 둘 다 공개 파싱(_canonical_heading)에선 무시된다.
+_INVIDENCE_DETAIL_RE = re.compile(r"^#{1,6}\s+챗봇전용\s+\[\[E(\d+)\]\]\s*$")
+_INVIDENCE_CODE_RE = re.compile(r"^#{1,6}\s+\[\[E(\d+)\]\]\s*$")
+
 # 표 컬럼 → DTO 필드 키워드 매핑(부분일치, 앞 항목 우선).
 _OPTION_COLS = [
     ("옵션", "option"),
@@ -103,6 +109,57 @@ def _parse_sections(body: str) -> dict[str, str]:
     return sections
 
 
+def _parse_keyed_blocks(text: str, heading_re: re.Pattern[str]) -> dict[int, str]:
+    """헤딩이 `heading_re`(E{n} 캡처)에 맞는 블록만 {n: 블록텍스트}로 분할.
+
+    invidence detail(본문 숨은 섹션)·code(사이드카) 파싱에 공용. 다른 헤딩이 나오면
+    현재 블록을 닫는다(누수 방지) — 공개 섹션 사이에 끼어 있어도 안전.
+    """
+    result: dict[int, str] = {}
+    current: int | None = None
+    buf: list[str] = []
+    for line in text.splitlines():
+        h = re.match(r"^#{1,6}\s+", line)
+        if h:
+            if current is not None:
+                result[current] = "\n".join(buf).strip()
+            m = heading_re.match(line)
+            current = int(m.group(1)) if m else None
+            buf = []
+        elif current is not None:
+            buf.append(line)
+    if current is not None:
+        result[current] = "\n".join(buf).strip()
+    return result
+
+
+def _code_sidecar_path(md_path: Path) -> Path:
+    """`wiki/<project>/<id>.md` → 형제 사이드카 `<id>.code.md`."""
+    return md_path.with_name(md_path.stem + ".code.md")
+
+
+def _load_invidence(body: str, md_path: Path) -> dict[int, dict]:
+    """숨은 섹션 detail + 사이드카 code를 Evidence 순번(1-based)별로 합친다.
+
+    공개 조회에는 절대 실리지 않는다(load_raw의 `_invidence` 내부 키로만).
+    """
+    detail = _parse_keyed_blocks(body, _INVIDENCE_DETAIL_RE)
+    code: dict[int, str] = {}
+    sidecar = _code_sidecar_path(md_path)
+    if sidecar.exists():
+        code = _parse_keyed_blocks(sidecar.read_text(encoding="utf-8"), _INVIDENCE_CODE_RE)
+    merged: dict[int, dict] = {}
+    for n in set(detail) | set(code):
+        entry: dict = {}
+        if detail.get(n):
+            entry["detail"] = detail[n]
+        if code.get(n):
+            entry["code"] = code[n]
+        if entry:
+            merged[n] = entry
+    return merged
+
+
 def _split_row(line: str) -> list[str]:
     """마크다운 표 한 줄 → 셀 리스트."""
     return [c.strip() for c in line.strip().strip("|").split("|")]
@@ -171,6 +228,9 @@ def load_raw(path: Path) -> dict:
         "summary": parsed.get("summary"),
         "sections": sections,
         "evidence": evidence,
+        # 챗봇 전용 숨은 층(ARCHITECTURE §v4-A). 공개 DTO/서비스엔 절대 노출 안 함 —
+        # get_chatbot_point 접근자만 읽는다. {n(1-based): {detail?, code?}}.
+        "_invidence": _load_invidence(body, path),
         "_path": str(path),
     }
 
@@ -184,6 +244,8 @@ def iter_raw() -> Iterator[dict]:
         return
     for path in sorted(WIKI_ROOT.rglob("*.md")):
         if path.name == "index.md":  # be/project 소유
+            continue
+        if path.name.endswith(".code.md"):  # invidence.code 사이드카(포인트 아님)
             continue
         yield load_raw(path)
 

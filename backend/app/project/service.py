@@ -53,6 +53,7 @@ def get_index(slug: str) -> ProjectIndex | None:
         team_size=raw["team_size"],
         tech_stack=raw["tech_stack"],
         architecture=raw["architecture"],
+        architecture_diagram=raw.get("architecture_diagram"),
         highlights=raw["highlights"],
         points=points,
     )

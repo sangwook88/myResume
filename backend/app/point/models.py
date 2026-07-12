@@ -62,3 +62,21 @@ class Point(PointSummary):
     summary: str
     sections: Sections
     evidence: list[Evidence]
+
+
+class ChatbotEvidence(Evidence):
+    """챗봇 코퍼스 전용 Evidence — invidence(숨은 detail·code) 부착 (ARCHITECTURE §v4-A).
+
+    detail = 사람이 쓴 숨은 섹션, code = 발행 시 git에서 뽑은 hunk. 공개 DTO(Evidence)엔
+    없다 — 이 확장 모델은 get_chatbot_point 경로에서만 만들어진다(공개/비공개 물리 분리).
+    invidence 는 인용(Citation) 대상이 아니다.
+    """
+
+    detail: str | None = None
+    code: str | None = None
+
+
+class ChatbotPoint(Point):
+    """챗봇 코퍼스 전용 단건 — Evidence 를 ChatbotEvidence(invidence 포함)로 교체."""
+
+    evidence: list[ChatbotEvidence]

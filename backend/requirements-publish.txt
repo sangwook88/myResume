@@ -1,0 +1,7 @@
+# 발행/빌드 전용 의존 (ARCHITECTURE §v4-C). 서빙 런타임과 무관 —
+# 발행(scripts/publish.py·compile_diagrams.py)을 로컬에서 돌릴 때만 설치한다:
+#   pip install -r requirements-publish.txt
+# 발행 안 하는 포크는 없어도 앱 기동·챗봇·둘러보기 정상.
+
+# typst = 아키텍처 도식 소스(.typ) → SVG 컴파일러(Rust 바인딩, 별도 바이너리 불필요).
+typst>=0.11

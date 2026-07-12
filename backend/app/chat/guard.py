@@ -5,7 +5,7 @@
 
   1) 질문 로깅: 들어온 질문을 분석용으로 적재한다.
      - ``chat:qlog``  : 최근 질문 레코드(JSON) 리스트, QLOG_CAP 개로 트림.
-     - ``chat:qfreq`` : 정규화 질문 → 누적 횟수 zset(빈도 랭킹, "어떤 질문이 오나").
+     - ``chat:qfreq`` : 정규화 질문 → 누적 횟수 zset(빈도 랭킹). 상위 QFREQ_CAP 개로 트림.
   2) 레이트리밋/밴: IP 단위 분·일 윈도우 카운터 + 동일 질문 반복(스팸) 탐지.
      초과하면 일시 밴(``chat:ban:{ip}``, TTL). LLM 호출 **전에** 차단해 비용을 아낀다.
 
@@ -34,6 +34,7 @@ BAN_SECONDS = int(os.environ.get("CHAT_BAN_SECONDS", "3600"))       # 밴 지속
 MIN_Q_LEN = int(os.environ.get("CHAT_MIN_Q_LEN", "2"))             # 최소 질문 길이
 MAX_Q_LEN = int(os.environ.get("CHAT_MAX_Q_LEN", "1000"))          # 최대 질문 길이
 QLOG_CAP = int(os.environ.get("CHAT_QLOG_CAP", "5000"))            # 최근 질문 보관 개수
+QFREQ_CAP = int(os.environ.get("CHAT_QFREQ_CAP", "10000"))         # 빈도 랭킹 상한(상위 N 유지)
 
 _BAN = "chat:ban:{ip}"
 _MIN = "chat:rate:min:{ip}"
@@ -192,6 +193,9 @@ class ChatGuard:
             pipe.lpush(_QLOG, rec)
             pipe.ltrim(_QLOG, 0, QLOG_CAP - 1)
             pipe.zincrby(_QFREQ, 1, _norm(question))
+            # 빈도 zset 은 서로 다른 질문마다 멤버가 늘어 무한 증가 가능 → 매 적재마다 하위
+            # (저빈도) 멤버를 잘라 상위 QFREQ_CAP 개만 유지(메모리 상한). 상한 미만이면 no-op.
+            pipe.zremrangebyrank(_QFREQ, 0, -QFREQ_CAP - 1)
             pipe.execute()
         except Exception:  # noqa: BLE001
             logger.exception("질문 로깅 실패 — 무시(가용성 우선).")

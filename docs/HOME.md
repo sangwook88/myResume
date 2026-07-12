@@ -32,4 +32,17 @@
 - pofol → be/project       # 저작 스킬이 프로젝트 표지(index 1~5)를 인터뷰하고 기록 (로컬·구독)
 - pofol → be/point         # 저작 스킬이 be/point 양식(목차)을 읽어 인터뷰하고 포인트로 기록 (로컬·구독)
 
+## v4 확장 (2026-07-12~) — 신규 도메인·엣지 없음, 기존 도메인 확장
+현재 타깃 v4([roadmap](roadmap.md))는 **새 도메인도 새 참조 엣지도 만들지 않는다.** 전부 기존 확장:
+
+| 도메인 | v4 확장 |
+|---|---|
+| be/point | 마크다운 스키마 확장. ① STAR/ADR 프로즈를 **목차 스캐폴딩 + 사람 인터뷰 저작**으로 대체(pofol 2단계 결). ② **Evidence 밑 `invidence` 숨은 층** — 각 근거(커밋/PR)에 매달린 (a) 사람의 소소한 디테일·일화, (b) 코드 내용(발행 시 그 커밋의 diff/파일 1회 추출). 공개 DTO·FE는 invidence 제외, 챗봇만 읽음. git-읽기는 발행 플로우의 얇은 유틸(scripts, 새 도메인 아님) |
+| be/chat | 코퍼스 조립이 be/point 확장 문서의 **visible + invidence(디테일·코드) 합집합**을 읽어 답변. + 프롬프트 캐싱·랭체인 정상화(프리픽스 고정·tone 브레이크포인트 후치·코퍼스 재배치 제거·1h TTL·stream_usage 실측) |
+| be/project | 표지(index)가 **typst→SVG 압축 아키텍처 도식 애셋** 참조를 소유(architecture 필드 곁) |
+| fe/browse | 포인트 페이지는 visible만 렌더(invidence 숨김) + 프로젝트 페이지에 도식 SVG 임베드 |
+| fe/chat | 변화 없음(코드는 마크다운 코드펜스로 이미 렌더) |
+
+> 코드 공급 경계 결정: 별도 `be/git` 도메인을 만들지 않고 **Evidence 밑 `invidence` 하위 층**으로 흡수(같은 마크다운 파일·같은 발행 게이트 공유). 나중 v3 자동 git 분석이 실제로 필요해지면 그때 be/git로 승격 재검토.
+
 > 미룬 도메인(버전 게이트): be/raw·be/git(자동 소스)·be/wiki 저작 엔진(자동화)·RAG 서빙·풀 HITL 승인 → 전부 v3. 근거: [[evidence-and-rag]]·[[authoring-local-vs-serving-api]] (메모리).

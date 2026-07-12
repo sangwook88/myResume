@@ -14,8 +14,8 @@ engine: codex
 *챗봇 응답 엔진. published 코퍼스(포인트 + 프로젝트 표지)를 load-all해 질문에 근거와 함께 답하고, 맥락 기반 제안 질문을 만들며, 세션 단위 대화 이력을 보관한다. RAG 아님(v1=load-all).*
 
 ## 구성
-- [데이터.md](데이터.md) — 대화세션(M, session_id·턴·TTL) + role enum. 코퍼스는 be/point·be/project 참조(소유 아님)
-- [기능_답변생성.md](기능_답변생성.md) — 질문 → published load-all + 근거 인용, 스트리밍 (fe/chat 질문응답)
+- [데이터.md](데이터.md) — 대화세션(M, session_id·턴·TTL) + role enum. 코퍼스는 be/point·be/project 참조(소유 아님). **v4: be/point는 챗봇컨텍스트조회로 visible+invidence 합집합**
+- [기능_답변생성.md](기능_답변생성.md) — 질문 → published load-all + 근거 인용, 스트리밍 (fe/chat 질문응답). **v4: 하이브리드 코퍼스(+invidence) + 프롬프트 캐싱 정상화(안정 프리픽스·tone 후치·실측·1h TTL)**
 - [기능_제안질문생성.md](기능_제안질문생성.md) — 포인트 맥락 기반 제안 질문 (fe/chat 챗봇열림)
 - [기능_세션이력관리.md](기능_세션이력관리.md) — session_id 기준 이력 로드·저장, TTL 1일 만료 (fe/chat 양 노드)
 

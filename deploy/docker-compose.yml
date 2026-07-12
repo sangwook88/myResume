@@ -1,0 +1,66 @@
+name: project-po
+
+# 근거기반 포트폴리오 — 셀프호스팅 배포 스택.
+# FE·BE 를 Caddy 한 오리진 뒤에 두어 세션 쿠키(SameSite=Lax)가 first-party 로 동작하게 한다.
+#   브라우저 → Caddy(:80/:443) → /api/* = FastAPI, 그 외 = Next.js
+# 시크릿·오리진은 같은 폴더의 .env(=.env.example 복사)에서 주입한다.
+
+services:
+  redis:
+    image: redis:7-alpine
+    # appendonly = 재시작에도 세션·질문로그 보존(디스크 영속).
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      WIKI_ROOT: /app/wiki
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?deploy/.env 에 ANTHROPIC_API_KEY 를 설정하세요}
+      # Caddy 뒤라 실제 클라이언트 IP 는 X-Forwarded-For 로 온다 → 레이트리밋이 그걸 신뢰.
+      CHAT_TRUST_PROXY: "1"
+      # 선택: 질문 로그 조회(GET /api/chat/admin/*). 비우면 그 엔드포인트는 404 로 숨김.
+      CHAT_ADMIN_TOKEN: ${CHAT_ADMIN_TOKEN:-}
+    volumes:
+      # 콘텐츠는 이미지에 굽지 않고 마운트 → 포폴 갱신 = git pull 후 backend 재시작(또는 ISR).
+      - ../wiki:/app/wiki:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+    environment:
+      # 서버 컴포넌트(FE 컨테이너 내부) → 내부 서비스명으로 BE 호출. 브라우저는 상대경로(/api).
+      API_INTERNAL_BASE: http://backend:8000
+      NODE_ENV: production
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # :80 = 로컬 HTTP 테스트 / example.com = 공개 도메인(Caddy 자동 HTTPS)
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  caddy-data:
+  caddy-config:

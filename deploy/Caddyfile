@@ -1,0 +1,18 @@
+# FE·BE 를 한 오리진으로 묶는 리버스 프록시. SITE_ADDRESS 는 compose 가 주입.
+#   :80         → 로컬 HTTP 테스트(http://localhost)
+#   example.com → 공개 도메인. Caddy 가 Let's Encrypt 로 HTTPS 를 자동 발급/갱신(포트 443 필요).
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# 챗봇 SSE + REST → FastAPI. flush_interval -1 로 스트리밍 응답 버퍼링을 끈다(토큰 즉시 전달).
+	handle /api/* {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+
+	# 그 외 전부 → Next.js.
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

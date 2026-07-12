@@ -7,7 +7,14 @@
 
 import type { Point, PointSummary, ProjectIndex, ProjectSummary } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8000';
+// 서버 컴포넌트 전용 fetch base. 컨테이너/리버스 프록시 배포에선 브라우저와 서버가 서로
+// 다른 base 를 쓴다(브라우저=동일 오리진 상대경로 /api, 서버=내부 서비스명). 그래서 서버측은
+// 런타임 env API_INTERNAL_BASE 를 우선한다(NEXT_PUBLIC 아님 → 번들에 안 박히고 런타임에 읽음).
+// 로컬 dev 는 둘 다 없으면 localhost:8000.
+const API_BASE =
+  process.env.API_INTERNAL_BASE ??
+  process.env.NEXT_PUBLIC_API_BASE ??
+  'http://localhost:8000';
 
 // 콘텐츠(위키)는 안정적 → ISR 재검증 주기(초). 저작 반영 지연 허용 범위.
 // 단 개발 모드(저작 중)에선 0으로 즉시 반영 — 새 포인트/수정이 새로고침에 바로 보이게.

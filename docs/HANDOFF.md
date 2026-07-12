@@ -87,7 +87,7 @@ HOME 도메인 상태: **be/point·be/project·be/chat = done**, **fe/browse·fe
 
 ## 7. 제약 (신성불가침)
 - 규약 SoT = ARCHITECTURE.md. **계약(§3·§5)·경계·기획을 바꾸지 않는다** — 바꿔야 하면 멈추고 사람에게(intake) 반환.
-- 배정 도메인(fe/browse·fe/chat) 밖(backend·BE 계약) 수정 금지. 관계형 DB 도입 금지. 인라인 선택-질문 금지(v3).
+- 배정 도메인(fe/browse·fe/chat) 밖(backend·BE 계약) 수정 금지. 관계형 DB 도입 금지. (인라인 선택-질문은 당시 v3로 금지였으나 이후 프로토타입 범위로 구현 완료 — `SelectionAsk.tsx`.)
 - **push 하지 않는다.** 로컬 커밋까지만.
 
 ## 8. 포인터

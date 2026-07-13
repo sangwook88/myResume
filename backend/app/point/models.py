@@ -65,6 +65,12 @@ class Point(PointSummary):
     evidence: list[Evidence]
 
 
+class PointEdit(CamelModel):
+    """관리자 편집 입력. 서식 손실을 막기 위해 전체 마크다운 원문을 받는다."""
+
+    content: str
+
+
 class AdminPointSummary(PointSummary):
     """관리자 목록용 요약 — 공개 목록과 달리 draft 를 포함하므로 status·updated 를 노출한다.
 

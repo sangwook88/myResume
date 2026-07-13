@@ -8,14 +8,16 @@
 be/project 소유인 `index.md`는 이 도메인 대상이 아니므로 스캔에서 제외한다.
 콘텐츠 루트는 리포 루트의 `wiki/` (WIKI_ROOT 환경변수로 재정의 가능 — 검증용).
 
-이 모듈은 순수 파싱만 한다(Pydantic 미의존). DTO 조립은 service가 담당하고,
-발행 게이트(publish_errors)는 scripts/publish.py가 재사용한다.
+이 모듈은 파싱과 기존 문서의 원자적 저장을 담당한다(Pydantic 미의존).
+DTO 조립·편집 검증은 service가 담당하고, 발행 게이트(publish_errors)는
+scripts/publish.py가 재사용한다.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Iterator
 
@@ -192,9 +194,12 @@ def _parse_table(block: str, colmap: list[tuple[str, str]]) -> list[dict]:
     return rows
 
 
-def load_raw(path: Path) -> dict:
-    """마크다운 파일 1개 → raw dict(status 포함). 파싱 실패는 예외로 전파."""
-    text = path.read_text(encoding="utf-8")
+def parse_markdown(text: str, path: Path) -> dict:
+    """마크다운 원문 → raw dict(status 포함).
+
+    ``path``는 invidence.code 사이드카 위치와 내부 ``_path``를 정하는 기준이다.
+    저장 전 편집 원문도 실제 대상 경로를 기준으로 같은 파서를 거친다.
+    """
     fm, body = _split_frontmatter(text)
     parsed = _parse_sections(body)
 
@@ -235,6 +240,12 @@ def load_raw(path: Path) -> dict:
     }
 
 
+def load_raw(path: Path) -> dict:
+    """마크다운 파일 1개 → raw dict(status 포함). 파싱 실패는 예외로 전파."""
+    with path.open("r", encoding="utf-8", newline="") as file:
+        return parse_markdown(file.read(), path)
+
+
 def iter_raw() -> Iterator[dict]:
     """wiki/ 하위 모든 포인트 마크다운을 로드(index.md 제외).
 
@@ -256,6 +267,42 @@ def find_raw_by_id(point_id: str) -> dict | None:
         if raw.get("id") == point_id:
             return raw
     return None
+
+
+def path_of_id(point_id: str) -> Path | None:
+    """실존 포인트를 스캔해 id가 일치하는 파일 경로만 반환한다.
+
+    사용자 입력으로 경로를 조합하지 않으므로 ``../``·절대경로 형태의 id도
+    실존 문서 frontmatter와 일치하지 않으면 경로가 만들어지지 않는다.
+    """
+    for raw in iter_raw():
+        if raw.get("id") == point_id:
+            return Path(raw["_path"])
+    return None
+
+
+def save_markdown(path: Path, text: str) -> None:
+    """마크다운 원문을 같은 디렉토리의 임시 파일을 거쳐 원자적으로 교체한다."""
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(text)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+    except BaseException:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def publish_errors(raw: dict) -> list[str]:

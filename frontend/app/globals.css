@@ -766,8 +766,8 @@ table.opt td.pick {
 }
 
 /* ============================================================
-   관리자 대시보드 (fe/admin — 비공개). 공개 페이지와 같은 디자인 시스템을
-   재사용하고, 여기서만 쓰는 소수 요소(토큰 폼·상태 배지·펼침 헤더)만 더한다.
+   관리자 화면 (fe/admin — 비공개). 공개 페이지와 같은 디자인 시스템을
+   재사용하고, 여기서만 쓰는 소수 요소(토큰 폼·툴바·상태 배지·펼침 헤더)만 더한다.
    ============================================================ */
 .admin-form { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 6px; }
 .admin-input {
@@ -781,7 +781,12 @@ table.opt td.pick {
 .admin-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
-.admin-actions { display: flex; gap: 8px; }
+.admin-viewbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 20px; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--card);
+}
+.admin-actions { display: flex; align-items: center; gap: 8px; }
 .admin-grouphead {
   font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--slate);
   margin: 18px 0 2px; letter-spacing: -0.01em;
@@ -810,9 +815,8 @@ table.opt td.pick {
   font-family: var(--font-ui); font-size: 12px; color: var(--subtle); white-space: nowrap; flex: none;
 }
 .admin-rowbtn .caret { color: var(--subtle); font-size: 12px; flex: none; margin-left: 4px; }
-
-.admin-preview { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
-.admin-preview section { scroll-margin-top: 0; }
+.admin-point-card .aside { display: flex; align-items: center; gap: 10px; }
+.admin-point-card .chev { color: var(--subtle); font-size: 20px; }
 
 /* 세션 대화 — 챗봇 말풍선(.bubble) 재사용을 위한 flex 컬럼 컨테이너 */
 .admin-turns {

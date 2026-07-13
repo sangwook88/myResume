@@ -1,5 +1,5 @@
 // fe/admin — 관리자 대시보드(비공개). 공개 페이지와 같은 디자인 시스템(globals.css)을
-// 그대로 입혀 실제 페이지처럼 보이게 한다. 토큰 게이트 → draft 포함 포인트 미리보기 +
+// 그대로 입혀 실제 페이지처럼 보이게 한다. 토큰 게이트 → draft 포함 포인트 링크 +
 // Redis 대화 세션 내역 + 질문 로그/빈도. 브라우저에서 BE 관리자 엔드포인트를 Bearer 로
 // 직접 호출한다(lib/adminClient). 토큰은 sessionStorage 에만 보관(탭 닫으면 소멸).
 "use client";
@@ -7,9 +7,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Markdown from "@/components/Markdown";
-import type { Evidence, Option, Point } from "@/lib/types";
 import {
-  adminGetPoint,
+  ADMIN_TOKEN_KEY,
   adminListPoints,
   adminListSessions,
   adminRecentQuestions,
@@ -20,109 +19,10 @@ import {
   type TopQuestion,
 } from "@/lib/adminClient";
 
-const TOKEN_KEY = "po_admin_token";
-
 function fmt(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("ko-KR");
-}
-
-function OptionTable({ options }: { options: Option[] }) {
-  return (
-    <div className="opt-table-wrap">
-      <table className="opt">
-        <thead>
-          <tr>
-            <th>옵션</th>
-            <th>장점</th>
-            <th>단점</th>
-            <th>비용/리스크</th>
-            <th>채택</th>
-          </tr>
-        </thead>
-        <tbody>
-          {options.map((o, i) => (
-            <tr key={i}>
-              <td>{o.option ?? ""}</td>
-              <td>{o.pros ?? ""}</td>
-              <td>{o.cons ?? ""}</td>
-              <td>{o.cost ?? ""}</td>
-              <td className="pick">{o.adopted ?? ""}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function EvidenceRows({ evidence }: { evidence: Evidence[] }) {
-  return (
-    <ul className="evi-list">
-      {evidence.map((e, i) => {
-        const linked = e.url && e.url !== "—";
-        const inner = (
-          <>
-            <span className={`kind ${e.kind}`}>{e.kind}</span>
-            <span className="label">{e.label}</span>
-            {linked && <span className="ext">↗</span>}
-          </>
-        );
-        return (
-          <li className="evi-item" key={i}>
-            <span className="evi-num">{i + 1}</span>
-            {linked ? (
-              <a className="evi-link" href={e.url} target="_blank" rel="noreferrer">
-                {inner}
-              </a>
-            ) : (
-              <span className="evi-link">{inner}</span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function PointPreview({ p }: { p: Point }) {
-  const s = p.sections;
-  const text: [string, string | undefined][] = [
-    ["배경", s.background],
-    ["문제", s.problem],
-    ["결정과 근거", s.decision],
-    ["실행", s.execution],
-    ["결과", s.result],
-    ["회고", s.retrospective],
-  ];
-  return (
-    <div className="admin-preview">
-      <div className="point-lede">
-        <Markdown>{p.summary}</Markdown>
-      </div>
-      {text.map(([label, val]) =>
-        val ? (
-          <section key={label}>
-            <div className="section-label">{label}</div>
-            <Markdown>{val}</Markdown>
-          </section>
-        ) : null,
-      )}
-      {s.options && s.options.length > 0 && (
-        <section>
-          <div className="section-label">고려한 옵션</div>
-          <OptionTable options={s.options} />
-        </section>
-      )}
-      {p.evidence.length > 0 && (
-        <section>
-          <div className="section-label">Evidence · {p.evidence.length}건</div>
-          <EvidenceRows evidence={p.evidence} />
-        </section>
-      )}
-    </div>
-  );
 }
 
 export default function AdminPage() {
@@ -136,8 +36,6 @@ export default function AdminPage() {
   const [questions, setQuestions] = useState<QuestionLog[]>([]);
   const [top, setTop] = useState<TopQuestion[]>([]);
 
-  const [openPoint, setOpenPoint] = useState<string | null>(null);
-  const [pointCache, setPointCache] = useState<Record<string, Point>>({});
   const [openSession, setOpenSession] = useState<string | null>(null);
 
   // 토큰으로 대시보드 데이터 전량 로드. 첫 호출(points)로 인증 성공 여부를 판정한다.
@@ -148,12 +46,12 @@ export default function AdminPage() {
     if (!pts.ok) {
       setError(pts.message);
       setToken(null);
-      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
       setLoading(false);
       return;
     }
     setPoints(pts.data);
-    sessionStorage.setItem(TOKEN_KEY, t);
+    sessionStorage.setItem(ADMIN_TOKEN_KEY, t);
     setToken(t);
 
     const [ses, q, tq] = await Promise.all([
@@ -169,34 +67,21 @@ export default function AdminPage() {
 
   // 마운트 시 저장된 토큰이 있으면 자동 진입 시도.
   useEffect(() => {
-    const saved = sessionStorage.getItem(TOKEN_KEY);
+    const saved = sessionStorage.getItem(ADMIN_TOKEN_KEY);
     if (saved) {
       setTokenInput(saved);
       void loadAll(saved);
     }
   }, [loadAll]);
 
-  const togglePoint = async (id: string) => {
-    if (openPoint === id) {
-      setOpenPoint(null);
-      return;
-    }
-    setOpenPoint(id);
-    if (!pointCache[id] && token) {
-      const r = await adminGetPoint(token, id);
-      if (r.ok) setPointCache((c) => ({ ...c, [id]: r.data }));
-    }
-  };
-
   const logout = () => {
-    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     setToken(null);
     setTokenInput("");
     setPoints([]);
     setSessions([]);
     setQuestions([]);
     setTop([]);
-    setOpenPoint(null);
     setOpenSession(null);
   };
 
@@ -277,10 +162,13 @@ export default function AdminPage() {
           <div className="admin-grouphead">{project}</div>
           {list.map((p) => {
             const draft = p.status !== "published";
-            const open = openPoint === p.id;
             return (
-              <div className="card" key={p.id}>
-                <button className="admin-rowbtn" onClick={() => togglePoint(p.id)}>
+              <Link
+                className="card admin-point-card"
+                href={`/admin/points/${encodeURIComponent(p.id)}`}
+                key={p.id}
+              >
+                <span className="admin-rowbtn">
                   <span className="lead">
                     <span className={`admin-badge ${draft ? "draft" : "published"}`}>
                       {draft ? "draft" : "published"}
@@ -289,17 +177,11 @@ export default function AdminPage() {
                   </span>
                   <span className="aside">
                     {p.updated ?? ""}
-                    <span className="caret"> {open ? "▲" : "▼"}</span>
+                    <span className="chev">›</span>
                   </span>
-                </button>
+                </span>
                 {p.summary && <div className="m">{p.summary}</div>}
-                {open &&
-                  (pointCache[p.id] ? (
-                    <PointPreview p={pointCache[p.id]} />
-                  ) : (
-                    <div className="m">불러오는 중…</div>
-                  ))}
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -17,12 +17,13 @@ import json
 import os
 from typing import AsyncIterator
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
 
+from app.admin import require_admin as _require_admin
 from app.chat import service
 from app.chat.guard import ChatGuard
-from app.chat.models import ChatRequest, Turn
+from app.chat.models import ChatRequest, Session, Turn
 from app.chat.session import new_session_id
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -42,15 +43,6 @@ def _client_ip(request: Request) -> str:
         if xff:
             return xff.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
-
-
-def _require_admin(request: Request) -> None:
-    """관리자 조회 게이트. env CHAT_ADMIN_TOKEN 미설정이면 기능 자체를 숨긴다(404)."""
-    token = os.environ.get("CHAT_ADMIN_TOKEN")
-    if not token:
-        raise HTTPException(status_code=404)
-    if request.headers.get("authorization", "") != f"Bearer {token}":
-        raise HTTPException(status_code=403, detail="관리자 토큰이 올바르지 않습니다.")
 
 
 def _sse(event: str, data) -> str:
@@ -161,3 +153,13 @@ async def admin_top(
     """가장 많이 들어온 질문 랭킹. env CHAT_ADMIN_TOKEN + Bearer 필요."""
     _require_admin(request)
     return _guard.top(limit)
+
+
+@router.get("/admin/sessions", response_model=list[Session])
+async def admin_sessions(
+    request: Request,
+    limit: int = Query(200, ge=1, le=1000, description="최근 N개 세션"),
+) -> list[Session]:
+    """Redis 의 대화 세션 전체(turns 포함, 최근 생성순). Bearer 필요. TTL 갱신 안 함."""
+    _require_admin(request)
+    return service.list_sessions(limit)

@@ -14,11 +14,14 @@ citations 도 보관한다(데이터.md#turn).
 
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
 from app.chat.models import Session, Turn
+
+logger = logging.getLogger(__name__)
 
 TTL_SECONDS = 86400  # 1일 sliding
 _KEY_PREFIX = "chat:session:"
@@ -102,3 +105,28 @@ class SessionStore:
         session.turns.append(turn)
         self.save(session)
         return session
+
+    def list_sessions(self, limit: int = 200) -> list[Session]:
+        """모든 ``chat:session:*`` 를 SCAN 해 세션을 로드한다(관리자 감사 조회).
+
+        - TTL 은 갱신하지 않는다 — 조회가 세션 수명을 늘리면 안 되므로 load() 대신 get() 사용.
+        - 손상·역직렬화 실패 세션은 건너뛴다. 최근 생성순 정렬 후 limit 개까지.
+        - Redis 오류는 삼켜 빈 리스트(가용성 우선 — 세션/이력과 동일 정책).
+        """
+        sessions: list[Session] = []
+        try:
+            for key in self.client.scan_iter(match=f"{_KEY_PREFIX}*", count=100):
+                raw = self.client.get(key)
+                if raw is None:
+                    continue
+                try:
+                    sessions.append(Session.model_validate_json(raw))
+                except Exception:  # noqa: BLE001 — 손상 세션은 건너뜀
+                    logger.warning("세션 역직렬화 실패, 건너뜀: %s", key)
+                if len(sessions) >= limit:
+                    break
+        except Exception:  # noqa: BLE001 — Redis 장애는 빈 리스트로 폴백
+            logger.exception("세션 스캔 실패 — 빈 리스트 반환.")
+            return []
+        sessions.sort(key=lambda s: s.created_at or "", reverse=True)
+        return sessions

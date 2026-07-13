@@ -22,7 +22,7 @@ import re
 from typing import AsyncIterator, Protocol
 
 from app.chat import corpus as corpus_mod
-from app.chat.models import Citation, Turn
+from app.chat.models import Citation, Session, Turn
 from app.chat.session import SessionStore
 
 logger = logging.getLogger(__name__)
@@ -351,6 +351,16 @@ async def answer_stream(
     store.save(session)
 
     yield {"type": "done"}
+
+
+def list_sessions(limit: int = 200, *, store: SessionStore | None = None) -> list[Session]:
+    """모든 대화 세션(관리자 감사용). 스토어 오류면 빈 리스트(가용성 우선)."""
+    store = store or SessionStore()
+    try:
+        return store.list_sessions(limit)
+    except Exception:  # noqa: BLE001
+        logger.exception("세션 목록 조회 실패 — 빈 리스트 반환.")
+        return []
 
 
 def history(session_id: str, *, store: SessionStore | None = None) -> list[Turn]:

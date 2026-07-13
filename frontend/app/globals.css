@@ -764,3 +764,101 @@ table.opt td.pick {
   }
   .reveal, .reveal-scroll { opacity: 1 !important; transform: none !important; }
 }
+
+/* ============================================================
+   관리자 대시보드 (fe/admin — 비공개). 공개 페이지와 같은 디자인 시스템을
+   재사용하고, 여기서만 쓰는 소수 요소(토큰 폼·상태 배지·펼침 헤더)만 더한다.
+   ============================================================ */
+.admin-form { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 6px; }
+.admin-input {
+  font-family: var(--font-ui); font-size: 15px; color: var(--fg);
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--radius); padding: 10px 14px; outline: none; min-width: 260px;
+}
+.admin-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.admin-error { color: var(--err); font-size: 14px; margin: 12px 0 0; }
+
+.admin-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.admin-actions { display: flex; gap: 8px; }
+.admin-grouphead {
+  font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--slate);
+  margin: 18px 0 2px; letter-spacing: -0.01em;
+}
+.admin-count { color: var(--subtle); font-weight: 500; font-size: 13px; }
+
+/* 상태 배지 (draft=warn / published=ok) */
+.admin-badge {
+  display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; border-radius: 5px; padding: 2px 8px;
+  border: 1px solid transparent; flex: none;
+}
+.admin-badge.draft { background: #fff7ed; color: var(--warn); border-color: #fed7aa; }
+.admin-badge.published { background: #f0fdf4; color: var(--ok); border-color: #bbf7d0; }
+.admin-badge.role { background: var(--card); color: var(--subtle); border-color: var(--line); }
+
+/* 클릭 가능한 카드 헤더(버튼 리셋) */
+.admin-rowbtn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: none; border: none; cursor: pointer; text-align: left; color: inherit; padding: 0;
+  font: inherit;
+}
+.admin-rowbtn .lead { display: flex; align-items: center; gap: 9px; min-width: 0; flex-wrap: wrap; }
+.admin-rowbtn .ttl { font-family: var(--font-ui); font-weight: 600; color: var(--slate); }
+.admin-rowbtn .aside {
+  font-family: var(--font-ui); font-size: 12px; color: var(--subtle); white-space: nowrap; flex: none;
+}
+.admin-rowbtn .caret { color: var(--subtle); font-size: 12px; flex: none; margin-left: 4px; }
+
+.admin-preview { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
+.admin-preview section { scroll-margin-top: 0; }
+
+/* 세션 대화 — 챗봇 말풍선(.bubble) 재사용을 위한 flex 컬럼 컨테이너 */
+.admin-turns {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 14px;
+  background: #fbfcfe; border: 1px solid var(--line-soft); border-radius: var(--radius-lg); padding: 14px;
+}
+.admin-mono { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+/* ============================================================
+   재사용 마크다운 문서(.md-doc) — 페이지 본문에서 md 를 서식대로 렌더.
+   챗봇 말풍선(.bubble.bot .md)과 같은 규칙을 말풍선 밖 본문용으로 옮긴 것.
+   ============================================================ */
+.md-doc > *:first-child { margin-top: 0; }
+.md-doc > *:last-child { margin-bottom: 0; }
+.md-doc p { margin: 0 0 10px; }
+.md-doc ul, .md-doc ol { margin: 8px 0 12px; padding-left: 22px; }
+.md-doc li { margin: 4px 0; }
+.md-doc li > p { margin: 0; }
+.md-doc strong { font-weight: 700; color: var(--slate); }
+.md-doc em { font-style: italic; }
+.md-doc a { color: var(--accent); text-decoration: underline; }
+.md-doc code {
+  font-family: var(--font-mono); font-size: 0.88em; background: #eef1f7;
+  color: #334155; padding: 1px 5px; border-radius: 4px;
+}
+.md-doc pre {
+  background: var(--code-bg); color: #e2e8f0; padding: 12px 14px;
+  border-radius: 10px; overflow-x: auto; margin: 10px 0; font-size: 12.5px; line-height: 1.55;
+}
+.md-doc pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+.md-doc h1, .md-doc h2, .md-doc h3, .md-doc h4 {
+  font-family: var(--font-ui); font-weight: 700; color: var(--slate);
+  margin: 14px 0 6px; letter-spacing: -0.01em; text-transform: none;
+}
+.md-doc h1 { font-size: 19px; } .md-doc h2 { font-size: 17px; }
+.md-doc h3 { font-size: 15px; } .md-doc h4 { font-size: 14px; }
+.md-doc blockquote {
+  margin: 10px 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--line); color: var(--muted);
+}
+.md-doc table {
+  border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 10px 0;
+  display: block; overflow-x: auto;
+}
+.md-doc th, .md-doc td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+.md-doc th { background: var(--card); font-weight: 600; }
+.md-doc hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+
+/* 요약(lede)을 md 로 렌더할 때 리드 타이포를 유지(마진만 제거) */
+.point-lede .md-doc p { margin: 0; }

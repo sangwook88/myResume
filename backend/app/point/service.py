@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from app.point import repository
 from app.point.models import (
+    AdminPointSummary,
     ChatbotEvidence,
     ChatbotPoint,
     Evidence,
@@ -67,15 +68,8 @@ def _sections_from_raw(raw: dict) -> Sections:
     )
 
 
-def get_published(point_id: str) -> Point | None:
-    """id로 published 단건 조회. 없거나 draft면 None(라우터가 302 처리).
-
-    **공개 경로 — invidence(숨은 detail·code)는 절대 포함하지 않는다**(ARCHITECTURE §v4-A).
-    """
-    raw = repository.find_raw_by_id(point_id)
-    if raw is None or raw.get("status") != "published":
-        return None
-
+def _to_point(raw: dict) -> Point:
+    """raw dict → 공개 Point DTO(invidence 제외). status 필터는 호출측 책임."""
     evidence = [Evidence(**e) for e in raw.get("evidence", [])]
     return Point(
         id=raw["id"],
@@ -86,6 +80,50 @@ def get_published(point_id: str) -> Point | None:
         sections=_sections_from_raw(raw),
         evidence=evidence,
     )
+
+
+def get_published(point_id: str) -> Point | None:
+    """id로 published 단건 조회. 없거나 draft면 None(라우터가 302 처리).
+
+    **공개 경로 — invidence(숨은 detail·code)는 절대 포함하지 않는다**(ARCHITECTURE §v4-A).
+    """
+    raw = repository.find_raw_by_id(point_id)
+    if raw is None or raw.get("status") != "published":
+        return None
+    return _to_point(raw)
+
+
+# ── 관리자 조회 (draft 포함 — 라우터에서 require_admin 게이트) ──
+
+
+def _to_admin_summary(raw: dict) -> AdminPointSummary:
+    return AdminPointSummary(
+        id=raw["id"],
+        title=raw["title"],
+        tags=raw.get("tags") or [],
+        project=raw["project"],
+        summary=raw.get("summary") or "",
+        status=raw.get("status") or "draft",
+        updated=raw.get("updated"),
+    )
+
+
+def list_all_admin() -> list[AdminPointSummary]:
+    """draft·published 전량(관리자용). updated 최신순, status·updated 포함."""
+    raws = list(repository.iter_raw())
+    raws.sort(key=lambda r: r.get("updated") or "", reverse=True)
+    return [_to_admin_summary(r) for r in raws]
+
+
+def get_any_admin(point_id: str) -> Point | None:
+    """id로 단건(draft 포함, 관리자용). 없으면 None. 공개 get_published 와 달리 status 무관.
+
+    invidence 는 여기서도 싣지 않는다 — 관리자는 공개 렌더 그대로 미리보기(초안 검수)한다.
+    """
+    raw = repository.find_raw_by_id(point_id)
+    if raw is None:
+        return None
+    return _to_point(raw)
 
 
 def get_chatbot_point(point_id: str) -> ChatbotPoint | None:

@@ -65,6 +65,17 @@ class Point(PointSummary):
     evidence: list[Evidence]
 
 
+class AdminPointSummary(PointSummary):
+    """관리자 목록용 요약 — 공개 목록과 달리 draft 를 포함하므로 status·updated 를 노출한다.
+
+    공개 PointSummary 는 published 만 나가 status 를 담을 필요가 없다(항상 published).
+    관리자 대시보드는 draft/published 를 한 목록에서 구분해야 해 두 필드를 더한다.
+    """
+
+    status: str  # draft | published
+    updated: str | None = None
+
+
 class ChatbotEvidence(Evidence):
     """챗봇 코퍼스 전용 Evidence — invidence(숨은 detail·code) 부착 (ARCHITECTURE §v4-A).
 

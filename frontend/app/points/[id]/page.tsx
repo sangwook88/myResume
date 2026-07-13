@@ -27,15 +27,14 @@ export default async function PointDetailPage({
 
   const s = point.sections;
 
-  // 실제 렌더되는 섹션만 추려 목차/번호의 단일 소스로 삼는다(있는 섹션만, 순서 고정).
+  // 페이지 노출 = 핵심만 한눈에: 문제 · 고려한 옵션(트레이드오프) · 결정과 근거 · 결과 + Evidence.
+  // 배경·실행(커밋별 상세)·회고는 페이지에서 접고, 궁금하면 챗봇이 답한다
+  // (be/chat 코퍼스는 서버에서 포인트 본문 전체를 읽으므로 렌더에서 빼도 답변 가능).
   const sectionDefs: RailSection[] = [
-    s.background ? { id: 'background', label: '배경' } : null,
     s.problem ? { id: 'problem', label: '문제' } : null,
     s.options && s.options.length > 0 ? { id: 'options', label: '고려한 옵션' } : null,
     s.decision ? { id: 'decision', label: '결정과 근거' } : null,
-    s.execution ? { id: 'execution', label: '실행' } : null,
     s.result ? { id: 'result', label: '결과' } : null,
-    s.retrospective ? { id: 'retrospective', label: '회고' } : null,
     { id: 'evidence', label: 'Evidence' },
   ].filter((x): x is RailSection => x !== null);
 
@@ -68,15 +67,7 @@ export default async function PointDetailPage({
           <span>프로젝트 <b>{point.project}</b></span>
         </div>
 
-        {/* 2. 배경 (선택) */}
-        {s.background && (
-          <section id="background">
-            <div className="section-label"><span className="n">{numOf('background')}</span>배경</div>
-            <p>{s.background}</p>
-          </section>
-        )}
-
-        {/* 3. 문제 (핵심) */}
+        {/* 문제 (핵심) — 배경은 페이지에서 접고 챗봇이 답한다 */}
         {s.problem && (
           <section id="problem">
             <div className="section-head">
@@ -106,15 +97,7 @@ export default async function PointDetailPage({
           </section>
         )}
 
-        {/* 6. 실행 (선택) */}
-        {s.execution && (
-          <section id="execution">
-            <div className="section-label"><span className="n">{numOf('execution')}</span>실행</div>
-            <p>{s.execution}</p>
-          </section>
-        )}
-
-        {/* 7. 결과 (선택) */}
+        {/* 결과 (핵심) — 실행(커밋별 상세)은 페이지에서 접고 챗봇이 답한다 */}
         {s.result && (
           <section id="result">
             <div className="section-label"><span className="n">{numOf('result')}</span>결과</div>
@@ -122,18 +105,17 @@ export default async function PointDetailPage({
           </section>
         )}
 
-        {/* 8. 회고 (선택) */}
-        {s.retrospective && (
-          <section id="retrospective">
-            <div className="section-label"><span className="n">{numOf('retrospective')}</span>회고</div>
-            <p>{s.retrospective}</p>
-          </section>
-        )}
-
-        {/* 9. Evidence (핵심 — 발행 게이트가 ≥1 보장). 번호 각주형 + 접기 */}
+        {/* Evidence (핵심 — 발행 게이트가 ≥1 보장). 번호 각주형 + 접기 */}
         <section id="evidence">
           <EvidenceList evidence={point.evidence} />
         </section>
+
+        {/* 깊이는 챗봇으로 — 배경·구현 상세·회고는 페이지에서 접고, 물으면 챗봇이 근거로 답한다.
+            (invidence 포함 본문 전체를 be/chat 코퍼스가 읽음) */}
+        <div className="depth-cta">
+          <span className="t">배경 · 구현 과정 · 회고가 궁금하신가요?</span>
+          <AskSectionButton question={`"${point.title}" 포인트의 배경과 구현 과정, 회고를 근거와 함께 자세히 설명해줘`} />
+        </div>
 
         {/* 같은 프로젝트의 다른 포인트 — 팸플릿 맨 끝 카드 */}
         {siblings.length > 0 && (

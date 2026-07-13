@@ -557,6 +557,14 @@ table.opt td.pick {
 .point-main { min-width: 0; }
 .point-main > * { max-width: 680px; }        /* 읽기 폭 제한(~65자) */
 .point-main section { scroll-margin-top: 84px; } /* 앵커 점프 시 브랜드바 아래로 */
+/* 핵심 뒤 "깊이는 챗봇으로" CTA — 배경·구현 상세·회고를 페이지에서 접고 챗봇으로 유도 */
+.depth-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  flex-wrap: wrap; margin: 28px 0 8px; padding: 16px 18px;
+  border: 1px dashed var(--line); border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+}
+.depth-cta .t { font-size: 14px; color: var(--muted); font-family: var(--font-ui); }
 
 /* 읽기 진행 바 */
 .reading-progress {

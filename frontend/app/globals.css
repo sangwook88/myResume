@@ -47,6 +47,10 @@
 * { box-sizing: border-box; }
 
 html, body { margin: 0; padding: 0; }
+/* 목차·앵커 이동을 순간이동 대신 부드러운 스크롤로. sticky .brandbar(top:0) 아래로
+   착지하도록 padding 보정(스크롤 추적 offset 100 과 정렬). reduced-motion 이면
+   아래 @media 가드가 scroll-behavior 를 auto 로 되돌려 즉시 이동. */
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
 
 body {
   font-family: var(--font-body);

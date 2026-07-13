@@ -1,6 +1,6 @@
 # 도메인 지도
 
-> 범위: [roadmap](roadmap.md) **프로토타입 완료(2026-07-12)**. v1·v2 구현 완료(2026-07-08) — v2(경험 심화)는 새 도메인이 아니라 기존 fe/browse·fe/chat·be/chat에 확장으로 반영됨. v3는 프로토타입 범위인 인라인 선택-질문(`SelectionAsk.tsx`, fe/browse 확장)까지 구현하고 종료 — 자동화·RAG 계열은 "자동 소스가 실제로 필요해질 때"까지 의도적 게이트 유지(아직 도메인으로 가르지 않음).
+> 범위: [roadmap](roadmap.md) **v4 완료(2026-07-13)**. v1·v2 구현 완료(2026-07-08) — v2(경험 심화)는 새 도메인이 아니라 기존 fe/browse·fe/chat·be/chat에 확장으로 반영됨. v3는 프로토타입 범위인 인라인 선택-질문(`SelectionAsk.tsx`, fe/browse 확장)까지 구현하고 종료 — 자동화·RAG 계열은 **2026-07-13 피벗으로 안 함(YAGNI) 확정**(도메인으로 가르지 않음). 다음은 비-기능 '콘텐츠 채우기 페이즈'(`pofol` 인터뷰로 임시 데이터셋 교체).
 > 기반: [설계 브리프](brainstorming/portfolio-agent-brief.md)
 > v1 모델: 본인이 **Claude Code(구독)로 로컬에서** 문서+대화 → 포폴 포인트를 저작(근거 강제 기재) → 발행 → 채용자가 렌더된 위키를 둘러보다 챗봇(API)에 질문.
 
@@ -45,4 +45,4 @@
 
 > 코드 공급 경계 결정: 별도 `be/git` 도메인을 만들지 않고 **Evidence 밑 `invidence` 하위 층**으로 흡수(같은 마크다운 파일·같은 발행 게이트 공유). 나중 v3 자동 git 분석이 실제로 필요해지면 그때 be/git로 승격 재검토.
 
-> 미룬 도메인(버전 게이트): be/raw·be/git(자동 소스)·be/wiki 저작 엔진(자동화)·RAG 서빙·풀 HITL 승인 → 전부 v3. 근거: [[evidence-and-rag]]·[[authoring-local-vs-serving-api]] (메모리).
+> 안 만드는 도메인(YAGNI, 2026-07-13 피벗): be/raw·be/git(자동 소스)·be/wiki 저작 엔진(자동화)·RAG 서빙·풀 HITL 승인 → **안 함**(`pofol` 로컬 저작이 대체). 코드 공급은 be/point invidence 하위 층으로 흡수해 v4에 반영됨. 근거: [roadmap](roadmap.md) 「안 함」 · [[evidence-and-rag]]·[[authoring-local-vs-serving-api]] (메모리).

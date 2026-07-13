@@ -4,6 +4,10 @@
 - list_projects() -> list[ProjectSummary]
 - get_index(slug: str) -> ProjectIndex | None
 
+관리자 조회는 공개 경로와 물리적으로 분리해 draft 포인트를 포함한다:
+- list_all_admin() -> list[ProjectSummary]
+- get_index_admin(slug: str) -> ProjectIndex | None
+
 포인트 목록은 저장하지 않고 be/point service.list_by_project(slug)로 파생한다
 (데이터.md §7.3 · 티켓 §5·§8). be/point 내부는 읽기 호출만 한다.
 """
@@ -35,6 +39,11 @@ def list_projects() -> list[ProjectSummary]:
     return with_points + without_points
 
 
+def list_all_admin() -> list[ProjectSummary]:
+    """관리자 카탈로그용 프로젝트 전량. published 포인트 유무로 재정렬하지 않는다."""
+    return [_to_summary(raw) for raw in repository.iter_raw()]
+
+
 def get_index(slug: str) -> ProjectIndex | None:
     """표지 6요소 + be/point에서 조립한 published 포인트 목록. 없는 slug면 None.
 
@@ -44,6 +53,27 @@ def get_index(slug: str) -> ProjectIndex | None:
     if raw is None:
         return None
     points = point_service.list_by_project(slug)
+    return ProjectIndex(
+        slug=raw["slug"],
+        name=raw["name"],
+        summary=raw["summary"],
+        role=raw["role"],
+        period=raw["period"],
+        team_size=raw["team_size"],
+        tech_stack=raw["tech_stack"],
+        architecture=raw["architecture"],
+        architecture_diagram=raw.get("architecture_diagram"),
+        highlights=raw["highlights"],
+        points=points,
+    )
+
+
+def get_index_admin(slug: str) -> ProjectIndex | None:
+    """관리자용 표지 + draft·published 포인트 목록. 없는 slug면 None."""
+    raw = repository.find_raw_by_slug(slug)
+    if raw is None:
+        return None
+    points = [point for point in point_service.list_all_admin() if point.project == slug]
     return ProjectIndex(
         slug=raw["slug"],
         name=raw["name"],

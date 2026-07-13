@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { getProjectIndex } from '@/lib/api';
 import Reveal from '@/components/Reveal';
 import ArchitectureDiagram from '@/components/ArchitectureDiagram';
+import AskSectionButton from '@/components/AskSectionButton';
 
 export default async function ProjectIndexPage({
   params,
@@ -43,14 +44,27 @@ export default async function ProjectIndexPage({
         </>
       )}
 
-      {/* 아키텍처: v4 압축 도식(있으면 한눈에) + 긴 텍스트 개요. 도식 없으면 텍스트만(하위호환). */}
+      {/* 아키텍처: 도식(한눈에)만 노출하고 긴 개요 프로즈는 챗봇으로 미룬다
+          (프로즈는 be/chat 코퍼스의 표지에 포함돼 물으면 답한다 — corpus._render_cover).
+          도식이 없으면 하위호환으로 텍스트를 그대로 남긴다. */}
       {(project.architectureDiagram || project.architecture) && (
         <>
           <h3>아키텍처 개요</h3>
-          {project.architectureDiagram && (
-            <ArchitectureDiagram src={project.architectureDiagram} />
+          {project.architectureDiagram ? (
+            <>
+              <ArchitectureDiagram src={project.architectureDiagram} />
+              {project.architecture && (
+                <div className="depth-cta">
+                  <span className="t">아키텍처를 더 자세히 알고 싶으신가요?</span>
+                  <AskSectionButton
+                    question={`"${project.name}" 프로젝트의 아키텍처를 자세히 설명해줘`}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            project.architecture && <div className="archbox">{project.architecture}</div>
           )}
-          {project.architecture && <div className="archbox">{project.architecture}</div>}
         </>
       )}
 

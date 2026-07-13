@@ -6,10 +6,13 @@
 // 게이트 계약(app/admin.py):
 //   - CHAT_ADMIN_TOKEN 미설정 → 404 (기능 은닉)
 //   - 토큰 불일치        → 403
-import type { Point, PointSummary } from "./types";
+import type { Point, PointSummary, ProjectIndex } from "./types";
 
 // 브라우저 base. chatClient 와 동일 관례(NEXT_PUBLIC_API_BASE). 비면 동일 오리진.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
+
+/** 관리자 토큰을 현재 탭에서 공유하는 sessionStorage 키. */
+export const ADMIN_TOKEN_KEY = "po_admin_token";
 
 /** 관리자 목록 요약 — 공개 요약 + status·updated(draft/published 구분). */
 export interface AdminPointSummary extends PointSummary {
@@ -94,6 +97,10 @@ export const adminListPoints = (token: string) =>
 /** draft 포함 단건 전문(미리보기). */
 export const adminGetPoint = (token: string, id: string) =>
   getJson<Point>(`/api/points/admin/${encodeURIComponent(id)}`, token);
+
+/** draft 포인트를 포함한 프로젝트 인덱스 단건(be/0007). */
+export const adminGetProject = (token: string, slug: string) =>
+  getJson<ProjectIndex>(`/api/projects/admin/${encodeURIComponent(slug)}`, token);
 
 /** Redis 대화 세션 전체(turns 포함). */
 export const adminListSessions = (token: string, limit = 200) =>

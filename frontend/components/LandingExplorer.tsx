@@ -90,6 +90,7 @@ export default function LandingExplorer({
             <Reveal key={p.id} index={i}>
               <Link className="card" href={`/points/${encodeURIComponent(p.id)}`}>
                 <div className="t">{p.title}</div>
+                {p.summary && <div className="m">{p.summary}</div>}
                 <div className="m">
                   {p.tags.map((tag) => (
                     <span key={tag} className="tag">{tag}</span>

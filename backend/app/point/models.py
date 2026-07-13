@@ -1,8 +1,8 @@
 """be/point DTO (Pydantic). API 직렬화 키 케이스 = camelCase (ARCHITECTURE §5).
 
 계약 근거: tickets/be/0001-be-point.md §5.
-- PointSummary = { id, title, tags, project }
-- Point = PointSummary + { summary, sections{...}, evidence[] }
+- PointSummary = { id, title, tags, project, summary }
+- Point = PointSummary + { sections{...}, evidence[] }
 """
 
 from __future__ import annotations
@@ -48,18 +48,19 @@ class Sections(CamelModel):
 
 
 class PointSummary(CamelModel):
-    """목록·추천용 요약 카드."""
+    """목록·추천용 요약 카드. 요약(summary)은 목록에서 '어떤 포인트인지'를 한 줄로
+    보여주기 위해 포함한다(published 는 발행 게이트가 summary 를 보장)."""
 
     id: str
     title: str
     tags: list[str]
     project: str
+    summary: str
 
 
 class Point(PointSummary):
-    """단건 조회 전체: 요약 + 9섹션 본문 + Evidence."""
+    """단건 조회 전체: 요약(PointSummary) + 9섹션 본문 + Evidence."""
 
-    summary: str
     sections: Sections
     evidence: list[Evidence]
 

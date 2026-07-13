@@ -72,7 +72,10 @@ export default async function ProjectIndexPage({
           {project.points.map((pt, i) => (
             <Reveal key={pt.id} index={i}>
               <Link className="card card-row" href={`/points/${encodeURIComponent(pt.id)}`}>
-                <span className="t">{pt.title}</span>
+                <span className="rowmain">
+                  <span className="t">{pt.title}</span>
+                  {pt.summary && <span className="m">{pt.summary}</span>}
+                </span>
                 <span className="chev">›</span>
               </Link>
             </Reveal>

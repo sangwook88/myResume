@@ -34,18 +34,18 @@ export interface Sections {
   retrospective?: string;
 }
 
-/** 목록·추천용 요약 카드. */
+/** 목록·추천용 요약 카드. summary=목록에서 '어떤 포인트인지' 한 줄 설명(published 보장). */
 export interface PointSummary {
   id: string;
   title: string;
   tags: string[];
   /** 소속 프로젝트 slug. */
   project: string;
+  summary: string;
 }
 
-/** 포인트 단건 전체: 요약 + 9섹션 본문 + Evidence. */
+/** 포인트 단건 전체: 요약(PointSummary) + 9섹션 본문 + Evidence. */
 export interface Point extends PointSummary {
-  summary: string;
   sections: Sections;
   evidence: Evidence[];
 }

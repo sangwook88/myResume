@@ -28,6 +28,7 @@ def _to_summary(raw: dict) -> PointSummary:
         title=raw["title"],
         tags=raw.get("tags") or [],
         project=raw["project"],
+        summary=raw.get("summary") or "",
     )
 
 

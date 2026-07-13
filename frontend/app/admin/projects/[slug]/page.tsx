@@ -1,32 +1,32 @@
-// fe/browse — 관리자 프로젝트 인덱스. 토큰 조회만 이 페이지가 맡고 표현은 ProjectView를 재사용한다.
+// fe/browse — 관리자 프로젝트 인덱스와 아키텍처 SVG 업로드.
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import DiagramUploader from "@/components/DiagramUploader";
 import ProjectView from "@/components/ProjectView";
-import {
-  ADMIN_TOKEN_KEY,
-  adminGetProject,
-} from "@/lib/adminClient";
+import { ADMIN_TOKEN_KEY, adminGetProject } from "@/lib/adminClient";
 import type { ProjectIndex } from "@/lib/types";
 
 export default function AdminProjectPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
+  const [token, setToken] = useState("");
   const [project, setProject] = useState<ProjectIndex | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
-    if (!token) {
+    const savedToken = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+    if (!savedToken) {
       router.replace("/admin");
       return () => {
         active = false;
       };
     }
+    setToken(savedToken);
 
-    void adminGetProject(token, params.slug).then((result) => {
+    void adminGetProject(savedToken, params.slug).then((result) => {
       if (!active) return;
       if (!result.ok && (result.status === 403 || result.status === 404)) {
         router.replace("/admin");
@@ -48,7 +48,9 @@ export default function AdminProjectPage({ params }: { params: { slug: string } 
     return (
       <main className="page reveal">
         <div className="topbar">
-          <Link className="back" href="/admin">← 대시보드</Link>
+          <Link className="back" href="/admin">
+            ← 대시보드
+          </Link>
           <span>관리자</span>
         </div>
         <p className="admin-error">{error}</p>
@@ -56,7 +58,7 @@ export default function AdminProjectPage({ params }: { params: { slug: string } 
     );
   }
 
-  if (!project) {
+  if (!project || !token) {
     return (
       <main className="page reveal">
         <div className="empty-state">프로젝트를 불러오는 중…</div>
@@ -64,5 +66,13 @@ export default function AdminProjectPage({ params }: { params: { slug: string } 
     );
   }
 
-  return <ProjectView project={project} admin />;
+  return (
+    <ProjectView
+      project={project}
+      admin
+      controls={
+        <DiagramUploader token={token} slug={project.slug} onUploaded={setProject} />
+      }
+    />
+  );
 }

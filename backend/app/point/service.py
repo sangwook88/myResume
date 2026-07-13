@@ -1,4 +1,6 @@
-"""be/point 서비스(TS): 조회 3종. published만 노출한다.
+"""be/point 서비스(TS): 공개 조회 3종 + 관리자 조회·편집.
+
+공개 조회는 published만 노출하고, 관리자 기능의 인증 게이트는 router가 담당한다.
 
 후속 wave(be/project·be/chat)가 계약으로 쓰는 공개 시그니처:
 - list_recommended() -> list[PointSummary]
@@ -7,6 +9,9 @@
 """
 
 from __future__ import annotations
+
+import yaml
+from pydantic import ValidationError
 
 from app.point import repository
 from app.point.models import (
@@ -21,6 +26,14 @@ from app.point.models import (
 )
 
 _FEATURED = "featured"
+
+
+class PointNotFoundError(LookupError):
+    """관리자 편집 대상 point_id가 존재하지 않음."""
+
+
+class PointValidationError(ValueError):
+    """관리자 편집 원문이 포인트 문서 규약을 충족하지 않음."""
 
 
 def _to_summary(raw: dict) -> PointSummary:
@@ -124,6 +137,55 @@ def get_any_admin(point_id: str) -> Point | None:
     if raw is None:
         return None
     return _to_point(raw)
+
+
+def get_raw_markdown_admin(point_id: str) -> str | None:
+    """관리자 편집기 프리필용 원문. 없으면 None."""
+    path = repository.path_of_id(point_id)
+    if path is None:
+        return None
+    with path.open("r", encoding="utf-8", newline="") as file:
+        return file.read()
+
+
+def update_point_admin(point_id: str, content: str) -> Point:
+    """전체 마크다운을 검증해 기존 포인트에 원자적으로 저장하고 재조회한다."""
+    if not content.strip():
+        raise PointValidationError("content가 비어 있습니다.")
+
+    path = repository.path_of_id(point_id)
+    if path is None:
+        raise PointNotFoundError(point_id)
+
+    existing = repository.load_raw(path)
+    try:
+        parsed = repository.parse_markdown(content, path)
+    except (TypeError, ValueError, yaml.YAMLError) as exc:
+        raise PointValidationError(f"마크다운 파싱 실패: {exc}") from exc
+
+    if parsed.get("id") != point_id:
+        raise PointValidationError("frontmatter id가 URL point_id와 일치하지 않습니다.")
+    if parsed.get("project") != existing.get("project"):
+        raise PointValidationError("frontmatter project는 변경할 수 없습니다.")
+
+    status = parsed.get("status")
+    if status not in {"draft", "published"}:
+        raise PointValidationError("frontmatter status는 draft 또는 published여야 합니다.")
+    if status == "published":
+        errors = repository.publish_errors(parsed)
+        if errors:
+            raise PointValidationError("발행 게이트 미충족: " + "; ".join(errors))
+
+    try:
+        _to_point(parsed)
+    except ValidationError as exc:
+        raise PointValidationError(f"포인트 필드 검증 실패: {exc}") from exc
+
+    repository.save_markdown(path, content)
+    updated = get_any_admin(point_id)
+    if updated is None:
+        raise RuntimeError("저장한 포인트를 다시 조회할 수 없습니다.")
+    return updated
 
 
 def get_chatbot_point(point_id: str) -> ChatbotPoint | None:

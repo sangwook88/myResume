@@ -6,9 +6,10 @@ be/point와 동일하게 고정 경로를 먼저 둔다.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse
 
+from app.admin import require_admin
 from app.project import repository, service
 from app.project.models import ProjectIndex, ProjectSummary
 
@@ -19,6 +20,24 @@ router = APIRouter(prefix="/api/projects", tags=["project"])
 def get_projects() -> list[ProjectSummary]:
     """카탈로그: 모든 프로젝트 요약(published 포인트 0개는 후순위). 없으면 []."""
     return service.list_projects()
+
+
+# 관리자 조회(draft 포함) — 반드시 `/{slug}` 보다 먼저 선언("admin" catch 방지).
+@router.get("/admin", response_model=list[ProjectSummary])
+def get_admin_projects(request: Request) -> list[ProjectSummary]:
+    """모든 프로젝트 요약(관리자). CHAT_ADMIN_TOKEN + Bearer 필요."""
+    require_admin(request)
+    return service.list_all_admin()
+
+
+@router.get("/admin/{slug}", response_model=ProjectIndex)
+def get_admin_project(slug: str, request: Request):
+    """draft 포함 포인트를 조립한 프로젝트 인덱스(관리자). 없으면 404."""
+    require_admin(request)
+    index = service.get_index_admin(slug)
+    if index is None:
+        raise HTTPException(status_code=404)
+    return index
 
 
 @router.get("/{slug}/architecture.svg")

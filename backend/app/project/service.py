@@ -1,8 +1,9 @@
-"""be/project 서비스(TS): 표지 조회 + 포인트목록 조립.
+"""be/project 서비스(TS): 표지 조회·포인트목록 조립 + 관리자 도식 쓰기.
 
 후속 wave(be/chat load-all 코퍼스·fe/browse)가 계약으로 쓰는 공개 시그니처:
 - list_projects() -> list[ProjectSummary]
 - get_index(slug: str) -> ProjectIndex | None
+- set_diagram_admin(slug: str, svg: bytes) -> ProjectIndex
 
 관리자 조회는 공개 경로와 물리적으로 분리해 draft 포인트를 포함한다:
 - list_all_admin() -> list[ProjectSummary]
@@ -14,9 +15,21 @@
 
 from __future__ import annotations
 
+from xml.etree import ElementTree
+
 from app.point import service as point_service
 from app.project import repository
 from app.project.models import ProjectIndex, ProjectSummary
+
+MAX_DIAGRAM_SVG_BYTES = 2 * 1024 * 1024
+
+
+class ProjectNotFoundError(LookupError):
+    """관리자 쓰기 대상 프로젝트가 존재하지 않음."""
+
+
+class InvalidDiagramError(ValueError):
+    """업로드 도식이 SVG 계약을 충족하지 않음."""
 
 
 def _to_summary(raw: dict) -> ProjectSummary:
@@ -87,3 +100,38 @@ def get_index_admin(slug: str) -> ProjectIndex | None:
         highlights=raw["highlights"],
         points=points,
     )
+
+
+def _validate_diagram_svg(svg: bytes) -> None:
+    """빈 값·크기·XML 파싱·SVG 루트 태그를 저장 전에 검증."""
+    if not svg:
+        raise InvalidDiagramError("SVG 본문이 비어 있습니다.")
+    if len(svg) > MAX_DIAGRAM_SVG_BYTES:
+        raise InvalidDiagramError("SVG는 2 MiB 이하여야 합니다.")
+
+    try:
+        root = ElementTree.fromstring(svg)
+    except (ElementTree.ParseError, ValueError) as exc:
+        raise InvalidDiagramError("올바른 XML 형식의 SVG가 아닙니다.") from exc
+
+    # 표준 SVG 네임스페이스 또는 xmlns 없는 최소 SVG만 허용한다.
+    if root.tag not in ("svg", "{http://www.w3.org/2000/svg}svg"):
+        raise InvalidDiagramError("XML 루트 요소가 <svg>여야 합니다.")
+
+
+def set_diagram_admin(slug: str, svg: bytes) -> ProjectIndex:
+    """관리자 SVG 업로드를 검증·원자적 저장하고 갱신 인덱스를 반환."""
+    # 존재 검증을 입력 검증보다 먼저 해 없는/path traversal slug는 일관되게 404 처리한다.
+    if not repository.project_exists(slug):
+        raise ProjectNotFoundError(slug)
+    _validate_diagram_svg(svg)
+
+    try:
+        repository.save_diagram_svg(slug, svg)
+    except FileNotFoundError as exc:  # 존재 확인과 저장 사이 삭제된 경우도 404로 수렴.
+        raise ProjectNotFoundError(slug) from exc
+
+    index = get_index(slug)
+    if index is None:  # 저장 직후 표지가 사라진 극단적 경쟁 조건.
+        raise ProjectNotFoundError(slug)
+    return index

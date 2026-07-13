@@ -6,7 +6,8 @@
   frontmatter에 없으면 본문 전체(있으면)로 보완한다.
 
 slug 정본은 디렉토리 이름(`wiki/<slug>/`)이다 — 포인트의 `project` frontmatter와 매칭되는 값.
-이 모듈은 순수 파싱만 한다(Pydantic 미의존). DTO 조립은 service가 담당한다.
+이 모듈은 파일 파싱과 관리자 도식의 원자적 파일 저장만 담당한다(Pydantic 미의존).
+DTO 조립과 업로드 검증은 service가 담당한다.
 
 콘텐츠 루트는 be/point와 동일하게 리포 루트의 `wiki/`(검증용 WIKI_ROOT로 재정의 가능).
 be/point 리포지토리를 import하지 않고 같은 환경변수만 공유한다(도메인 내부 비침범).
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Iterator
 
@@ -24,6 +26,52 @@ import yaml
 # repository.py = backend/app/project/repository.py → parents[3] = 리포 루트
 _DEFAULT_WIKI = Path(__file__).resolve().parents[3] / "wiki"
 WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(_DEFAULT_WIKI)))
+
+
+def _find_project_dir(slug: str) -> Path | None:
+    """실존 ``wiki/<slug>/index.md``의 디렉터리를 정확 일치로 찾는다.
+
+    사용자 입력을 경로에 직접 붙이지 않고 한 단계 아래의 표지만 스캔하므로
+    ``../``·절대경로 같은 slug는 wiki 밖 파일과 매칭될 수 없다.
+    """
+    if not WIKI_ROOT.is_dir():
+        return None
+    for index_path in WIKI_ROOT.glob("*/index.md"):
+        if index_path.is_file() and index_path.parent.name == slug:
+            return index_path.parent
+    return None
+
+
+def project_exists(slug: str) -> bool:
+    """실존 프로젝트 표지가 있는 안전한 단일-segment slug인지 반환."""
+    return _find_project_dir(slug) is not None
+
+
+def save_diagram_svg(slug: str, svg_bytes: bytes) -> None:
+    """완성된 SVG를 프로젝트의 ``architecture.svg``로 원자적 저장한다.
+
+    프로젝트 표지가 없거나 slug가 경로 탈출 입력이면 ``FileNotFoundError``.
+    검증은 service 책임이며, 이 함수는 같은 디렉터리의 고유 임시 파일을 완전히
+    쓴 다음 ``os.replace``해 기존 도식의 부분 쓰기를 방지한다.
+    """
+    project_dir = _find_project_dir(slug)
+    if project_dir is None:
+        raise FileNotFoundError(slug)
+
+    target = project_dir / "architecture.svg"
+    fd, temp_name = tempfile.mkstemp(
+        dir=project_dir,
+        prefix=".architecture.svg.",
+        suffix=".tmp",
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "wb") as temp_file:
+            temp_file.write(svg_bytes)
+        os.replace(temp_path, target)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
 
 
 def _split_frontmatter(text: str) -> tuple[dict, str]:

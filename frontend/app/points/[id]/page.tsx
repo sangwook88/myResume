@@ -123,7 +123,10 @@ export default async function PointDetailPage({
             <div className="section-label">더 보기 · 같은 프로젝트의 다른 포인트</div>
             {siblings.map((p) => (
               <Link key={p.id} className="card card-row" href={`/points/${encodeURIComponent(p.id)}`}>
-                <span className="t">{p.title}</span>
+                <span className="rowmain">
+                  <span className="t">{p.title}</span>
+                  {p.summary && <span className="m">{p.summary}</span>}
+                </span>
                 <span className="chev">›</span>
               </Link>
             ))}

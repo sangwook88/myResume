@@ -152,6 +152,21 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* 랜딩 프로필 */}
+      <div className="section-label">프로필</div>
+      <Link className="card admin-point-card" href="/admin/profile">
+        <span className="admin-rowbtn">
+          <span className="lead">
+            <span className="ttl">프로필 편집</span>
+          </span>
+          <span className="aside">
+            랜딩 헤더
+            <span className="chev">›</span>
+          </span>
+        </span>
+        <div className="m">사진·이름·연락처·자기소개를 수정합니다.</div>
+      </Link>
+
       {/* 포인트 (draft 포함) */}
       <div className="section-label">
         포인트 <span className="admin-count">· {points.length}개 (draft 포함)</span>

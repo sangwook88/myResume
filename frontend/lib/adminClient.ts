@@ -6,7 +6,7 @@
 // 게이트 계약(app/admin.py):
 //   - CHAT_ADMIN_TOKEN 미설정 → 404 (기능 은닉)
 //   - 토큰 불일치        → 403
-import type { Point, PointSummary, ProjectIndex } from "./types";
+import type { Point, PointSummary, Profile, ProjectIndex } from "./types";
 
 // 브라우저 base. chatClient 와 동일 관례(NEXT_PUBLIC_API_BASE). 비면 동일 오리진.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -56,6 +56,19 @@ export interface TopQuestion {
 export type AdminResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; message: string };
+
+/** 관리자 프로필 저장 payload. 공개 Profile DTO와 필드가 같다. */
+export type ProfileEdit = Profile;
+
+const EMPTY_PROFILE: Profile = {
+  name: "",
+  headline: "",
+  photo: null,
+  github: "",
+  phone: "",
+  email: "",
+  intro: "",
+};
 
 function errorMessage(status: number, payload: unknown): string {
   if (status === 403) return "관리자 토큰이 올바르지 않습니다.";
@@ -133,6 +146,38 @@ async function requestJson<T>(
 }
 
 const getJson = <T>(path: string, token: string) => requestJson<T>(path, token);
+
+/** 편집기 프리필용 공개 프로필 조회. 실패 시 빈 프로필로 시작한다. */
+export async function fetchProfileClient(): Promise<Profile> {
+  try {
+    const res = await fetch(`${API_BASE}/api/profile`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return { ...EMPTY_PROFILE };
+    return (await res.json()) as Profile;
+  } catch {
+    return { ...EMPTY_PROFILE };
+  }
+}
+
+/** 구조화 프로필 필드를 검증·저장하고 갱신된 프로필을 받는다. */
+export const adminSaveProfile = (token: string, edit: ProfileEdit) =>
+  requestJson<Profile>("/api/profile/admin", token, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edit),
+  });
+
+/** 프로필 사진을 업로드하고 공개 URL을 받는다. */
+export const adminUploadProfileImage = (token: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<{ url: string; filename: string }>(
+    "/api/profile/admin/image",
+    token,
+    { method: "POST", body: form },
+  );
+};
 
 /** draft 포함 전체 포인트 요약. */
 export const adminListPoints = (token: string) =>

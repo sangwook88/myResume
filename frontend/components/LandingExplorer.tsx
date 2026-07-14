@@ -7,9 +7,11 @@
 // 포인트의 기술 스택 = 그 포인트가 속한 프로젝트의 techStack(포인트엔 스택 데이터가 없다).
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import ProfileHeader from '@/components/ProfileHeader';
 import Reveal from '@/components/Reveal';
 import { askChat } from '@/lib/askChat';
-import type { PointSummary } from '@/lib/types';
+import type { PointSummary, Profile } from '@/lib/types';
+import { displayText } from '@/lib/displayText';
 
 export interface LandingProject {
   slug: string;
@@ -25,9 +27,11 @@ const CHAT_QUESTIONS = [
 ];
 
 export default function LandingExplorer({
+  profile,
   recommended,
   projects,
 }: {
+  profile: Profile;
   recommended: PointSummary[];
   projects: LandingProject[];
 }) {
@@ -73,29 +77,30 @@ export default function LandingExplorer({
     <main className="point-wrap">
       {/* 좌: 목록 */}
       <div className="landing-main">
-        <h1 className="reveal" style={{ '--i': 0 } as React.CSSProperties}>포트폴리오</h1>
-        <p className="sub reveal" style={{ '--i': 1 } as React.CSSProperties}>
-          결정마다 커밋·PR·Swagger로 검증 가능한 근거기반 포트폴리오.
-        </p>
+        <ProfileHeader
+          profile={profile}
+          projectCount={projects.length}
+          caseCount={recommended.length}
+        />
 
         {active && (
           <p className="filter-note">
-            선택한 기술 스택: {Array.from(selected).join(', ')} · 포인트 {filteredPoints.length} · 프로젝트 {filteredProjects.length}
+            선택한 기술 스택: {Array.from(selected).map(displayText).join(', ')} / 포인트 {filteredPoints.length} / 프로젝트 {filteredProjects.length}
           </p>
         )}
 
-        <div className="section-label">추천 포폴 포인트</div>
+        <h2 className="landing-section-title">추천 구현 사례</h2>
         {filteredPoints.length > 0 ? (
           filteredPoints.map((p, i) => (
             <Reveal key={p.id} index={i}>
               <Link className="card" href={`/points/${encodeURIComponent(p.id)}`}>
-                <div className="t">{p.title}</div>
-                {p.summary && <div className="m">{p.summary}</div>}
+                <div className="t">{displayText(p.title)}</div>
+                {p.summary && <div className="m">{displayText(p.summary)}</div>}
                 <div className="m">
                   {p.tags.map((tag) => (
-                    <span key={tag} className="tag">{tag}</span>
+                    <span key={tag} className="tag">{displayText(tag)}</span>
                   ))}
-                  <span>· {p.project} 프로젝트</span>
+                  <span>{displayText(p.project)} 프로젝트</span>
                 </div>
               </Link>
             </Reveal>
@@ -104,17 +109,17 @@ export default function LandingExplorer({
           <div className="empty-state">선택한 기술 스택에 해당하는 추천 포인트가 없습니다.</div>
         )}
 
-        <div className="section-label">프로젝트</div>
+        <h2 className="landing-section-title">프로젝트</h2>
         {filteredProjects.length > 0 ? (
           filteredProjects.map((proj, i) => (
             <Reveal key={proj.slug} index={i}>
               <Link className="card" href={`/projects/${encodeURIComponent(proj.slug)}`}>
-                <div className="t">{proj.name}</div>
-                <div className="m">{proj.summary}</div>
+                <div className="t">{displayText(proj.name)}</div>
+                <div className="m">{displayText(proj.summary)}</div>
                 {proj.techStack.length > 0 && (
                   <div className="stackline">
                     {proj.techStack.map((t) => (
-                      <span key={t} className="tag">{t}</span>
+                      <span key={t} className="tag">{displayText(t)}</span>
                     ))}
                   </div>
                 )}
@@ -140,7 +145,7 @@ export default function LandingExplorer({
                   aria-pressed={selected.has(t)}
                   onClick={() => toggle(t)}
                 >
-                  {t}
+                  {displayText(t)}
                 </button>
               ))}
             </div>
@@ -154,7 +159,6 @@ export default function LandingExplorer({
 
         <div className="rail-card">
           <div className="rail-chat-head">
-            <span className="dot" />
             <span className="t">근거로 답하는 챗봇</span>
           </div>
           <div className="rail-chat-sub">포트폴리오 전반에 대해 물어보세요.</div>
@@ -174,13 +178,16 @@ export default function LandingExplorer({
               setInput('');
             }}
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="무엇이든 물어보세요"
-              aria-label="질문 입력"
-            />
-            <button type="submit" aria-label="전송">↑</button>
+            <label htmlFor="landing-question">직접 질문</label>
+            <div className="composer-row">
+              <input
+                id="landing-question"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="질문을 입력하세요"
+              />
+              <button type="submit">전송</button>
+            </div>
           </form>
         </div>
       </aside>

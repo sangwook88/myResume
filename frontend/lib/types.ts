@@ -2,6 +2,18 @@
 // 계약 근거: backend/app/point/models.py · backend/app/project/models.py.
 // FE는 이 타입으로만 소비한다(HTTP fetch). 필드 추가·변경은 BE 계약 변경 사안.
 
+/** 랜딩 헤더와 관리자 편집에서 공유하는 단일 프로필. */
+export interface Profile {
+  name: string;
+  headline: string;
+  photo: string | null;
+  github: string;
+  phone: string;
+  email: string;
+  /** 짧은 자기소개 마크다운. */
+  intro: string;
+}
+
 /** 근거 링크 1건. 포인트당 1개 이상 보장(발행 게이트). */
 export interface Evidence {
   /** commit | pr | swagger | file | link */

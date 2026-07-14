@@ -5,7 +5,7 @@
 // fetch가 302를 자동 추종하면 랜딩 HTML을 JSON으로 오해하므로 redirect:'manual'로
 // 받아서 비-2xx면 null 반환 → 페이지가 next/navigation redirect('/')로 처리한다.
 
-import type { Point, PointSummary, ProjectIndex, ProjectSummary } from './types';
+import type { Point, PointSummary, Profile, ProjectIndex, ProjectSummary } from './types';
 
 // 서버 컴포넌트 전용 fetch base. 컨테이너/리버스 프록시 배포에선 브라우저와 서버가 서로
 // 다른 base 를 쓴다(브라우저=동일 오리진 상대경로 /api, 서버=내부 서비스명). 그래서 서버측은
@@ -41,6 +41,21 @@ async function getJson<T>(path: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+/** 공개 랜딩 프로필. BE 미기동·비정상 응답이면 빈 프로필로 안전하게 폴백한다. */
+export async function getProfile(): Promise<Profile> {
+  return (
+    (await getJson<Profile>('/api/profile')) ?? {
+      name: '',
+      headline: '',
+      photo: null,
+      github: '',
+      phone: '',
+      email: '',
+      intro: '',
+    }
+  );
 }
 
 /** 랜딩 추천 포인트 상위 3(featured 우선·동점 최신순). 0개·실패면 []. */

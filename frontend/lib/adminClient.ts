@@ -158,6 +158,17 @@ export const adminSavePoint = (token: string, id: string, content: string) =>
     body: JSON.stringify({ content }),
   });
 
+/** 포인트 섹션에 넣을 이미지를 업로드하고 BE가 만든 마크다운 조각을 받는다. */
+export const adminUploadPointImage = (token: string, id: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<{ url: string; markdown: string; filename: string }>(
+    `/api/points/admin/${encodeURIComponent(id)}/images`,
+    token,
+    { method: "POST", body: form },
+  );
+};
+
 /** 완성된 SVG 도식을 업로드하고 갱신된 프로젝트 인덱스를 받는다. */
 export const adminUploadDiagram = (token: string, slug: string, file: File) => {
   const form = new FormData();

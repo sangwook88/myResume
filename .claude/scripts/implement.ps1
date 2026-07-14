@@ -11,9 +11,15 @@
 .PARAMETER Base     분기 기준. 미지정 시 입력 base, 없으면 main.
 .PARAMETER Engine   codex | claude. 미지정 시 입력 engine, 없으면 codex.
 .PARAMETER NoBranch 브랜치 안 따고 현재 브랜치에서.
+.PARAMETER NewTerminal  (별칭 -Orca) 인라인으로 돌리지 않고 새 Orca IDE 터미널 탭을 띄워 그 안에서 구현시킨다(서브에이전트).
+                        새 탭이 스스로 브랜치 체크아웃 + 엔진 실행을 하도록 implement.ps1 을 인라인 모드로 재귀 호출한다. Orca 터미널에서만 동작.
+.PARAMETER Worktree  Orca 격리 git 워크트리를 새로 만들어(메인 체크아웃 무오염) 그 안의 새 탭에서 엔진이 구현하게 한다.
+                     ORCA-HANDOFF 로 worktreeId/path/branch/terminalHandle 을 출력 → 감독(Claude)이 완료 대기·검수·알림. Orca 터미널에서만 동작.
 .PARAMETER DryRun   무엇을 할지만 출력.
 .EXAMPLE
     pwsh scripts/implement.ps1 -Side be 0001-order-calc      # tickets/be/0001-order-calc.md 자동 해석
+.EXAMPLE
+    powershell scripts/implement.ps1 -Side be 0001-order-calc -Engine codex -NewTerminal  # 새 Orca 터미널에서 codex 가 구현
 .EXAMPLE
     pwsh scripts/implement.ps1 -Side fe -Domain checkout       # docs/fe/checkout/ 자동 해석
 .EXAMPLE
@@ -27,6 +33,8 @@ param(
     [string]$Base,
     [ValidateSet('codex', 'claude')][string]$Engine,
     [switch]$NoBranch,
+    [Alias('Orca')][switch]$NewTerminal,
+    [switch]$Worktree,
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
@@ -83,6 +91,84 @@ if ($isDomain) {
 }
 if (-not $NoBranch -and -not $branch) { Fail "프런트매터에 branch 가 없습니다. -NoBranch 를 쓰거나 branch: 를 채우세요." }
 Info "${kind}: $ticketRel / 엔진: $Engine / status: $status"
+
+# ── Orca IDE 통합 ── (새 탭 / 격리 워크트리에서 구현시키기)
+function Resolve-Orca {
+    if ($env:TERM_PROGRAM -ne 'Orca') { Fail "Orca IDE 터미널에서만 동작합니다(현재 TERM_PROGRAM=$($env:TERM_PROGRAM))." }
+    $gc = Get-Command 'orca' -ErrorAction SilentlyContinue
+    if ($gc) { return $gc.Source }
+    foreach ($cand in @(
+            (Join-Path $env:LOCALAPPDATA 'Programs\orca\resources\bin\orca.cmd'),
+            (Join-Path ${env:ProgramFiles} 'orca\resources\bin\orca.cmd'))) {
+        if ($cand -and (Test-Path $cand)) { return $cand }
+    }
+    Fail "orca CLI(resources/bin/orca.cmd) 를 못 찾음 — Orca 설치 경로 확인."
+}
+
+# 격리 git 워크트리를 새로 만들어(메인 체크아웃 무오염) 그 안의 새 탭에서 엔진이 구현.
+# 완료 대기·검수·알림은 감독(Claude)이 ORCA-HANDOFF 값으로 이어받는다.
+if ($Worktree) {
+    $orca = Resolve-Orca
+    $wtName = [IO.Path]::GetFileNameWithoutExtension($ticketRel)
+    # 워크트리 탭에서 이 스크립트를 인라인 모드(-NoBranch, 워크트리가 이미 자기 브랜치)로 직접 실행.
+    $inner = "& `"$PSCommandPath`" -Ticket `"$ticketRel`" -Engine $Engine -NoBranch"
+    if ($DryRun) {
+        Info "[dry-run] 워크트리 생성 + 새 터미널:"
+        Write-Host "  `"$orca`" worktree create --repo path:$repo --name $wtName --base-branch $Base --no-parent --json"
+        Write-Host "  `"$orca`" terminal create --worktree id:<신규wtId> --title impl:$wtName --command `"$inner`" --focus --json"
+        exit 0
+    }
+    Info "격리 워크트리 생성: $wtName (base: $Base)"
+    $wtOut = & $orca worktree create --repo "path:$repo" --name $wtName --base-branch $Base --no-parent --json 2>&1 | Out-String
+    $wtId = $null; $wtPath = $null; $wtBranch = $null
+    try { $j = $wtOut | ConvertFrom-Json; $wtId = $j.result.worktree.id; $wtPath = $j.result.worktree.path; $wtBranch = $j.result.worktree.branch } catch {}
+    if (-not $wtId) { Write-Host $wtOut; Fail "워크트리 생성 실패(이미 있으면 'orca worktree rm --worktree name:$wtName --force')." }
+    Info "워크트리 경로: $wtPath / 브랜치: $wtBranch"
+    Info "새 Orca 터미널에서 $Engine 구현 시작..."
+    $tOut = & $orca terminal create --worktree "id:$wtId" --title "impl:$wtName" --command $inner --focus --json 2>&1 | Out-String
+    $handle = $null
+    try { $handle = ($tOut | ConvertFrom-Json).result.terminal.handle } catch {}
+    if (-not $handle) { Write-Host $tOut; Fail "터미널 생성 실패(워크트리는 남음: $wtPath)." }
+    Write-Host ""
+    Write-Host "ORCA-HANDOFF worktreeId=$wtId"
+    Write-Host "ORCA-HANDOFF worktreePath=$wtPath"
+    Write-Host "ORCA-HANDOFF worktreeBranch=$wtBranch"
+    Write-Host "ORCA-HANDOFF terminalHandle=$handle"
+    Write-Host ""
+    Info "감독: 완료 대기 → `"$orca`" terminal wait --terminal $handle --for tui-idle --json"
+    Info "감독: 검수     → git -C `"$wtPath`" diff $Base"
+    exit 0
+}
+
+# 인라인 대신 (현재 체크아웃 공유) 새 터미널 탭을 띄워 그 안에서 구현시킨다.
+# 새 탭 cwd = 워크트리 루트. 새 탭이 스스로 브랜치 체크아웃 + 엔진 실행을 하도록
+# implement.ps1 을 인라인 모드(-NewTerminal 없이)로 재귀 호출한다.
+if ($NewTerminal) {
+    $orca = Resolve-Orca
+    $sideArg = if ($Side) { $Side } elseif ($ticketRel -match '/(be|fe)/') { $Matches[1] } else { '' }
+    # 새 탭 셸은 이미 PowerShell 이므로 powershell.exe 를 중첩하지 않고 & 로 이 스크립트를
+    # 인라인 모드(-NewTerminal 없이)로 직접 실행한다. 절대경로+큰따옴표로 공백에 안전.
+    $inner = "& `"$PSCommandPath`" -Ticket `"$ticketRel`" -Engine $Engine"
+    if ($sideArg) { $inner += " -Side $sideArg" }
+    if ($Base) { $inner += " -Base $Base" }
+    $title = 'impl:' + [IO.Path]::GetFileNameWithoutExtension($ticketRel)
+    if ($DryRun) {
+        Info "[dry-run] 새 Orca 터미널 생성 명령:"
+        Write-Host "  `"$orca`" terminal create --worktree active --title `"$title`" --command `"$inner`" --focus --json"
+        exit 0
+    }
+    Info "새 Orca 터미널에서 구현 시작 → $title (엔진: $Engine)"
+    $out = & $orca terminal create --worktree active --title $title --command $inner --focus --json 2>&1 | Out-String
+    $handle = $null
+    try { $handle = ($out | ConvertFrom-Json).result.terminal.handle } catch {}
+    if ($handle) {
+        Info "터미널 핸들: $handle"
+        Info "진행 읽기:  `"$orca`" terminal read --terminal $handle --json"
+        Info "완료 대기:  `"$orca`" terminal wait --terminal $handle --for tui-idle --json"
+    }
+    else { Write-Host $out }
+    exit 0
+}
 
 $dirty = (& git -C $repo status --porcelain)
 if ($dirty -and -not $DryRun) {

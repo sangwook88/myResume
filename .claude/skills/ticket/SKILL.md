@@ -51,3 +51,18 @@ ARCHITECTURE §4 도메인 기본값(TS/DM)에서 출발. 기능 성격이 기�
    pwsh "${DDD_ROOT}/scripts/implement.ps1" -Side fe -Ticket tickets/fe/NNNN-<slug>.md
    ```
    `base`에서 `branch`를 따 `engine`에게 "이 티켓만 구현"시킨다. 검토·커밋·푸시는 사람.
+
+### 7-1. `/ticket <engine>` — Orca 격리 워크트리에서 자동 구현 + Claude 감독
+`/ticket codex`(또는 `/ticket claude`)처럼 **엔진 인자**가 오면 아래 감독 루프를 돈다. 전제: `TERM_PROGRAM=Orca`.
+
+1. **티켓 작성 → 사람 확인(검수 게이트).** "이 티켓 구현할까요?" 확인 없이는 아래로 못 넘어간다. 엔진 인자가 있어도 **사람 확인이 게이트**다.
+2. **격리 워크트리에서 구현 착수.** 확인되면 메인 스레드가 실행:
+   ```
+   powershell "${DDD_ROOT}/scripts/implement.ps1" -Side <be|fe> -Ticket <경로> -Engine <codex|claude> -Worktree
+   ```
+   `-Worktree` 는 `orca worktree create` 로 **새 격리 git 워크트리**(메인 체크아웃 무오염)를 만들고, 그 안의 새 탭에서 엔진이 headless 로 구현한다. 출력의 `ORCA-HANDOFF worktreeId/worktreePath/worktreeBranch/terminalHandle` 를 받아 둔다.
+3. **완료 대기(Claude).** `orca terminal wait --terminal <handle> --for tui-idle --json` (넉넉히 `--timeout-ms`). 필요하면 `orca terminal read --terminal <handle> --json` 로 진행/`[implement] 엔진 종료(exit 0)` 마커를 확인한다.
+4. **검수(Claude = 목표 달성 판정).** 티켓의 「구현목표/수용기준」·「경계(하지 말 것)」을 다시 읽고 `git -C "<worktreePath>" diff <base>` 로 실제 변경을 대조한다 — 수용 기준을 모두 충족했는가, 경계를 넘지 않았는가. 미충족이면 무엇이 빠졌는지 정리해 그 탭에 후속 지시(`orca terminal send`)하거나 사람에게 갈림길로 올린다.
+5. **완료 알림.** 다 되면 "됐다"고 알린다 — 대화로 보고 + (자리 비움 대비) `PushNotification` 으로 핑. 변경 요약·수용 기준 충족 여부·워크트리 브랜치(`<worktreeBranch>`)를 함께 준다. 병합·커밋·푸시는 사람. 워크트리 정리는 `orca worktree rm --worktree name:<slug> --force`.
+
+> 가벼운 대안(격리 불필요): `-Worktree` 대신 `-NewTerminal`(별칭 `-Orca`) — 현재 체크아웃을 공유하는 새 탭에서 구현(브랜치 체크아웃이 메인 창에도 반영됨). 감독 없이 그냥 새 탭만 띄울 때.

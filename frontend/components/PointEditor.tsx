@@ -12,8 +12,12 @@ import {
   assemble,
   splitFrontmatter,
   splitSections,
+  listImages,
+  updateImageMeta,
+  IMAGE_SIZE_PRESETS,
   type Block,
   type HeadingKind,
+  type ImageAlign,
 } from "@/lib/pointMarkdown";
 import type { Point } from "@/lib/types";
 
@@ -102,7 +106,7 @@ export default function PointEditor({ token, id, onSaved, onCancel }: PointEdito
       setBlocks((current) =>
         current.map((block, blockIndex) =>
           blockIndex === index
-            ? { ...block, body: `${block.body}\n\n${result.data.markdown}\n` }
+            ? { ...block, body: `${block.body}\n\n![](<${result.data.url}> "align=center")\n` }
             : block,
         ),
       );
@@ -297,6 +301,54 @@ function SectionBlockEditor({
         rows={Math.max(5, Math.min(16, block.body.split("\n").length + 2))}
         style={{ width: "100%", minWidth: 0, marginTop: 10, resize: "vertical" }}
       />
+      {(() => {
+        const images = listImages(block.body);
+        if (images.length === 0) return null;
+        return (
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {images.map((img, i) => (
+              <div
+                key={i}
+                style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, fontSize: 12 }}
+              >
+                <span className="admin-mono">이미지 {i + 1}</span>
+                <span className="sub">크기</span>
+                {IMAGE_SIZE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    className="back"
+                    aria-pressed={img.meta.width === preset.width}
+                    disabled={disabled || uploading}
+                    style={{ padding: "2px 9px", fontWeight: img.meta.width === preset.width ? 700 : 400 }}
+                    onClick={() => onChange(updateImageMeta(block.body, i, { width: preset.width }))}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+                <span className="sub">정렬</span>
+                {(["left", "center", "right"] as ImageAlign[]).map((align) => (
+                  <button
+                    key={align}
+                    type="button"
+                    className="back"
+                    aria-pressed={img.meta.align === align}
+                    disabled={disabled || uploading}
+                    style={{ padding: "2px 9px", fontWeight: img.meta.align === align ? 700 : 400 }}
+                    onClick={() => onChange(updateImageMeta(block.body, i, { align }))}
+                  >
+                    {align === "left" ? "◀" : align === "center" ? "■" : "▶"}
+                  </button>
+                ))}
+              </div>
+            ))}
+            <div className="admin-preview">
+              <div className="section-label">이 단락 미리보기 (크기·정렬 적용됨)</div>
+              <Markdown>{block.body}</Markdown>
+            </div>
+          </div>
+        );
+      })()}
       {uploadError && (
         <div className="admin-error" role="alert">
           {uploadError}

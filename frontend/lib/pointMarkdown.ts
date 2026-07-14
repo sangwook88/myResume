@@ -1,5 +1,85 @@
-// fe/browse 관리자 편집기용 마크다운 분해·재조립.
+// fe/browse 관리자 편집기용 마크다운 분해·재조립 + 인라인 이미지 크기·정렬 메타.
 // 헤딩과 원래 블록 순서는 상태에서 고정하고, 사용자는 각 블록의 본문만 바꾼다.
+
+export type ImageAlign = "left" | "center" | "right";
+
+export interface ImageMeta {
+  /** CSS 폭(예: "50%"·"320px"). 숫자만이면 px로 해석. */
+  width?: string;
+  align?: ImageAlign;
+  /** w=·align= 메타가 아닌 일반 title 문자열(캡션). */
+  caption?: string;
+}
+
+/** 편집기 프리셋 버튼 — 저장 폭은 컨테이너 상대 %(카드·미리보기 어디서나 비율 일치). */
+export const IMAGE_SIZE_PRESETS: { key: string; label: string; width: string }[] = [
+  { key: "s", label: "S", width: "25%" },
+  { key: "m", label: "M", width: "50%" },
+  { key: "l", label: "L", width: "75%" },
+  { key: "full", label: "전체", width: "100%" },
+];
+
+/** 이미지 title(`w=50%;align=center`)을 메타로 파싱한다. 메타가 아니면 caption으로 본다. */
+export function parseImageTitle(title?: string | null): ImageMeta {
+  if (!title) return {};
+  if (!/(?:^|;)\s*(?:w|align)\s*=/.test(title)) return { caption: title };
+  const meta: ImageMeta = {};
+  for (const part of title.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    const key = part.slice(0, eq).trim();
+    const val = part.slice(eq + 1).trim();
+    if (key === "w" && val) meta.width = /^\d+(?:\.\d+)?$/.test(val) ? `${val}px` : val;
+    else if (key === "align" && (val === "left" || val === "center" || val === "right")) {
+      meta.align = val;
+    }
+  }
+  return meta;
+}
+
+/** 메타를 title 문자열로 직렬화한다(빈 메타면 빈 문자열). caption은 프리셋 대상 아님. */
+export function buildImageTitle(meta: ImageMeta): string {
+  const parts: string[] = [];
+  if (meta.width) parts.push(`w=${meta.width}`);
+  if (meta.align) parts.push(`align=${meta.align}`);
+  return parts.join(";");
+}
+
+// alt·url(<...> 허용)·title(선택)을 잡는 이미지 토큰. 공유 상태를 피해 매번 새로 만든다.
+const IMAGE_PATTERN = '!\\[([^\\]]*)\\]\\(\\s*(<[^>]*>|[^)\\s]+)(?:\\s+"([^"]*)")?\\s*\\)';
+
+export interface FoundImage {
+  alt: string;
+  url: string;
+  meta: ImageMeta;
+}
+
+/** 블록 본문의 인라인 이미지들을 등장 순서대로 나열한다. */
+export function listImages(body: string): FoundImage[] {
+  const re = new RegExp(IMAGE_PATTERN, "g");
+  const out: FoundImage[] = [];
+  for (const m of body.matchAll(re)) {
+    out.push({ alt: m[1], url: m[2], meta: parseImageTitle(m[3]) });
+  }
+  return out;
+}
+
+/** occurrence번째(0-based) 이미지의 크기·정렬 메타만 갱신한 새 본문을 만든다. */
+export function updateImageMeta(
+  body: string,
+  occurrence: number,
+  patch: Partial<ImageMeta>,
+): string {
+  const re = new RegExp(IMAGE_PATTERN, "g");
+  let i = -1;
+  return body.replace(re, (full, alt, url, title) => {
+    i += 1;
+    if (i !== occurrence) return full;
+    const merged = { ...parseImageTitle(title), ...patch };
+    const t = buildImageTitle(merged);
+    return `![${alt}](${url}${t ? ` "${t}"` : ""})`;
+  });
+}
 
 export type HeadingKind =
   | "summary"

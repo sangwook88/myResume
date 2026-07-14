@@ -1,21 +1,29 @@
-// fe/browse — 공개·관리자 포인트 상세가 함께 쓰는 순수 표현 컴포넌트.
-// 데이터 조회와 인증은 페이지가 맡고, admin 플래그는 관리자 컨트롤과 이동 경로만 게이트한다.
+// 공개 및 관리자 포인트 상세가 함께 쓰는 STAR 중심 케이스 스터디.
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { Option, Point, PointSummary } from '@/lib/types';
+import { displayText } from '@/lib/displayText';
 import EvidenceList from '@/components/EvidenceList';
 import AskSectionButton from '@/components/AskSectionButton';
 import SelectionAsk from '@/components/SelectionAsk';
 import PointRail, { type RailSection } from '@/components/PointRail';
+import Reveal from '@/components/Reveal';
 import Markdown from '@/components/Markdown';
 
 export interface PointViewProps {
   point: Point;
   siblings: PointSummary[];
   admin?: boolean;
-  /** 공개 Point DTO에는 없으므로 관리자 목록 응답에서 결합한다. */
   status?: 'draft' | 'published';
   controls?: ReactNode;
+}
+
+interface StarCard {
+  id: string;
+  letter: 'S' | 'T' | 'A' | 'R';
+  label: string;
+  hint: string;
+  body: string;
 }
 
 export default function PointView({
@@ -25,37 +33,59 @@ export default function PointView({
   status = 'draft',
   controls,
 }: PointViewProps) {
-  const s = point.sections;
-
-  // 페이지 노출 = 핵심만 한눈에: 문제 · 고려한 옵션(트레이드오프) · 결정과 근거 · 결과 + Evidence.
-  // 배경·실행(커밋별 상세)·회고는 페이지에서 접고, 궁금하면 챗봇이 답한다
-  // (be/chat 코퍼스는 서버에서 포인트 본문 전체를 읽으므로 렌더에서 빼도 답변 가능).
-  const sectionDefs: RailSection[] = [
-    s.problem ? { id: 'problem', label: '문제' } : null,
-    s.options && s.options.length > 0 ? { id: 'options', label: '고려한 옵션' } : null,
-    s.decision ? { id: 'decision', label: '결정과 근거' } : null,
-    s.result ? { id: 'result', label: '결과' } : null,
-    { id: 'evidence', label: 'Evidence' },
-  ].filter((x): x is RailSection => x !== null);
-
-  const numOf = (id: string) =>
-    String(sectionDefs.findIndex((d) => d.id === id) + 1).padStart(2, '0');
+  const sections = point.sections;
   const projectHref = admin
     ? `/admin/projects/${encodeURIComponent(point.project)}`
     : `/projects/${encodeURIComponent(point.project)}`;
   const pointHref = (id: string) =>
     `${admin ? '/admin' : ''}/points/${encodeURIComponent(id)}`;
 
+  const starCards: StarCard[] = [
+    {
+      id: 'situation',
+      letter: 'S',
+      label: 'Situation',
+      hint: '어떤 맥락이었나',
+      body: sections.background || point.summary,
+    },
+    {
+      id: 'task',
+      letter: 'T',
+      label: 'Task',
+      hint: '무엇을 풀어야 했나',
+      body: sections.problem || point.summary,
+    },
+    {
+      id: 'action',
+      letter: 'A',
+      label: 'Action',
+      hint: '어떻게 판단하고 실행했나',
+      body: [sections.decision, sections.execution].filter(Boolean).join('\n\n') || point.summary,
+    },
+    {
+      id: 'result',
+      letter: 'R',
+      label: 'Result',
+      hint: '무엇이 달라졌나',
+      body: sections.result || '결과가 아직 문서화되지 않았습니다.',
+    },
+  ];
+
+  const railSections: RailSection[] = [
+    ...starCards.map(({ id, label }) => ({ id, label })),
+    ...(sections.options?.length ? [{ id: 'options', label: '의사결정 옵션' }] : []),
+    ...(sections.retrospective ? [{ id: 'retrospective', label: '회고' }] : []),
+    { id: 'evidence', label: 'Evidence' },
+  ];
+
   return (
-    <div className="point-wrap">
-      {/* 좌: 팸플릿 콘텐츠 */}
-      <article className="point-main reveal" id="point-body">
-        {/* v3 인라인 선택-질문: 본문 텍스트 드래그 선택 → 플로팅 버튼 → 챗봇 자동 질문 */}
+    <div className="point-wrap case-layout">
+      <article className="point-main case-study" id="point-body">
         <SelectionAsk containerId="point-body" />
 
         {admin && (
           <div className="admin-viewbar">
-            <Link className="back" href="/admin">← 대시보드</Link>
+            <Link className="back" href="/admin">대시보드</Link>
             <div className="admin-actions">
               <span className={`admin-badge ${status}`}>{status}</span>
               {controls}
@@ -63,119 +93,144 @@ export default function PointView({
           </div>
         )}
 
-        <div className="topbar">
-          <Link className="back" href={projectHref}>
-            ← {point.project}
-          </Link>
+        <div className="project-back reveal" style={{ '--i': 0 } as React.CSSProperties}>
+          <Link href={projectHref}>{displayText(point.project)}</Link>
+          <span aria-hidden="true">/</span>
+          <span>case study</span>
         </div>
 
-        {/* 1. 제목·태그·요약·메타 */}
-        <h1>{point.title}</h1>
-        <div>
-          {point.tags.map((tag) => (
-            <span key={tag} className="tag">{tag}</span>
-          ))}
-        </div>
-        <p className="point-lede">{point.summary}</p>
-        <div className="point-meta">
-          <span>Evidence <b>{point.evidence.length}건</b></span>
-          <span>프로젝트 <b>{point.project}</b></span>
-        </div>
+        <header className="case-hero">
+          <div className="reveal" style={{ '--i': 1 } as React.CSSProperties}>
+            <p className="case-kicker">Decision and delivery</p>
+            <h1>{displayText(point.title)}</h1>
+            <p className="point-lede">{displayText(point.summary)}</p>
+          </div>
 
-        {/* 문제 (핵심) — 배경은 페이지에서 접고 챗봇이 답한다 */}
-        {s.problem && (
-          <section id="problem">
-            <div className="section-head">
-              <div className="section-label"><span className="n">{numOf('problem')}</span>문제</div>
-              <AskSectionButton question="이 포인트가 풀려던 문제를 더 자세히 설명해줘" />
+          <div className="case-proof reveal" style={{ '--i': 2 } as React.CSSProperties}>
+            <div>
+              <span>Evidence</span>
+              <strong>{point.evidence.length}</strong>
             </div>
-            <Markdown>{s.problem}</Markdown>
-          </section>
-        )}
-
-        {/* 4. 고려한 옵션 (선택, 표) */}
-        {s.options && s.options.length > 0 && (
-          <section id="options">
-            <div className="section-label"><span className="n">{numOf('options')}</span>고려한 옵션</div>
-            <OptionTable options={s.options} />
-          </section>
-        )}
-
-        {/* 5. 결정과 근거 (핵심) */}
-        {s.decision && (
-          <section id="decision">
-            <div className="section-head">
-              <div className="section-label"><span className="n">{numOf('decision')}</span>결정과 근거</div>
-              <AskSectionButton question="이 결정의 근거를 더 자세히 설명해줘" />
+            <div>
+              <span>Project</span>
+              <strong>{displayText(point.project)}</strong>
             </div>
-            <Markdown>{s.decision}</Markdown>
+          </div>
+
+        </header>
+
+        {point.tags.length > 0 && (
+          <div className="case-tags reveal" style={{ '--i': 3 } as React.CSSProperties}>
+            {point.tags.map((tag) => (
+              <span key={tag}>{displayText(tag)}</span>
+            ))}
+          </div>
+        )}
+
+        <section className="star-overview" aria-labelledby="star-title">
+          <div className="star-heading">
+            <div>
+              <h2 id="star-title">STAR 한눈에 보기</h2>
+              <p>맥락에서 결과까지 한 흐름으로 읽도록 핵심 내용을 재배치했습니다.</p>
+            </div>
+            <AskSectionButton
+              question={`"${point.title}" 사례를 STAR 순서로 근거와 함께 설명해줘`}
+            />
+          </div>
+
+          <div className="star-grid">
+            {starCards.map((card, index) => (
+              <Reveal key={card.id} index={index}>
+                <section id={card.id} className={`star-card star-${card.letter.toLowerCase()}`}>
+                  <header>
+                    <span className="star-letter" aria-hidden="true">{card.letter}</span>
+                    <div>
+                      <h3>{card.label}</h3>
+                      <span>{card.hint}</span>
+                    </div>
+                  </header>
+                  <Markdown className="star-card-body">{displayText(card.body)}</Markdown>
+                </section>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {sections.options && sections.options.length > 0 && (
+          <section id="options" className="decision-section" aria-labelledby="options-title">
+            <div className="project-section-intro">
+              <h2 id="options-title">선택에는 이유가 있습니다</h2>
+              <p>채택한 안과 보류한 안을 같은 기준으로 비교했습니다.</p>
+            </div>
+            <OptionCards options={sections.options} />
           </section>
         )}
 
-        {/* 결과 (핵심) — 실행(커밋별 상세)은 페이지에서 접고 챗봇이 답한다 */}
-        {s.result && (
-          <section id="result">
-            <div className="section-label"><span className="n">{numOf('result')}</span>결과</div>
-            <Markdown>{s.result}</Markdown>
+        {sections.retrospective && (
+          <section id="retrospective" className="retrospective-note" aria-labelledby="retrospective-title">
+            <span className="retrospective-mark" aria-hidden="true">R</span>
+            <div>
+              <h2 id="retrospective-title">다시 한다면</h2>
+              <Markdown className="retrospective-body">{displayText(sections.retrospective)}</Markdown>
+            </div>
           </section>
         )}
 
-        {/* Evidence (핵심 — 발행 게이트가 ≥1 보장). 번호 각주형 + 접기 */}
-        <section id="evidence">
+        <section id="evidence" className="case-evidence" aria-label="검증 가능한 근거">
           <EvidenceList evidence={point.evidence} />
         </section>
 
-        {/* 깊이는 챗봇으로 — 배경·구현 상세·회고는 페이지에서 접고, 물으면 챗봇이 근거로 답한다.
-            (invidence 포함 본문 전체를 be/chat 코퍼스가 읽음) */}
-        <div className="depth-cta">
-          <span className="t">배경 · 구현 과정 · 회고가 궁금하신가요?</span>
-          <AskSectionButton question={`"${point.title}" 포인트의 배경과 구현 과정, 회고를 근거와 함께 자세히 설명해줘`} />
-        </div>
-
-        {/* 같은 프로젝트의 다른 포인트 — 팸플릿 맨 끝 카드 */}
         {siblings.length > 0 && (
-          <section>
-            <div className="section-label">더 보기 · 같은 프로젝트의 다른 포인트</div>
-            {siblings.map((p) => (
-              <Link key={p.id} className="card card-row" href={pointHref(p.id)}>
-                <span className="rowmain">
-                  <span className="t">{p.title}</span>
-                  {p.summary && <span className="m">{p.summary}</span>}
-                </span>
-                <span className="chev">›</span>
-              </Link>
-            ))}
+          <section className="more-cases" aria-labelledby="more-cases-title">
+            <div className="project-section-intro">
+              <h2 id="more-cases-title">같은 프로젝트의 다른 사례</h2>
+            </div>
+            <div className="case-index">
+              {siblings.map((sibling, index) => (
+                <Link key={sibling.id} className="case-index-link" href={pointHref(sibling.id)}>
+                  <span className="case-index-no">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="case-index-copy">
+                    <strong>{displayText(sibling.title)}</strong>
+                    {sibling.summary && <span>{displayText(sibling.summary)}</span>}
+                  </span>
+                  <span className="case-index-action">STAR 보기</span>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
       </article>
 
-      {/* 우: 스티키 탐색 레일 — 목차 + 진행 바 + 맥락 챗봇 */}
-      <PointRail sections={sectionDefs} />
+      <PointRail sections={railSections} />
     </div>
   );
 }
 
-function OptionTable({ options }: { options: Option[] }) {
+function adopted(value?: string): boolean {
+  if (!value) return false;
+  const normalised = value.trim().toLowerCase();
+  return ['o', 'yes', 'true', '채택', '선택', '✓', '✔', '●'].includes(normalised);
+}
+
+function OptionCards({ options }: { options: Option[] }) {
   return (
-    <div className="opt-table-wrap">
-      <table className="opt">
-        <thead>
-          <tr>
-            <th>옵션</th><th>장점</th><th>단점</th><th>비용/리스크</th><th>채택</th>
-          </tr>
-        </thead>
-        <tbody>
-          {options.map((o, i) => (
-            <tr key={i}>
-              <td>{o.option ?? ''}</td>
-              <td>{o.pros ?? ''}</td>
-              <td>{o.cons ?? ''}</td>
-              <td>{o.cost ?? ''}</td>
-              <td className="pick">{o.adopted ?? ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="option-cards">
+      {options.map((option, index) => {
+        const isAdopted = adopted(option.adopted);
+        return (
+          <article key={index} className={isAdopted ? 'option-card is-adopted' : 'option-card'}>
+            <header>
+              <h3>{displayText(option.option || `옵션 ${index + 1}`)}</h3>
+              <span>{isAdopted ? '채택' : '보류'}</span>
+            </header>
+            <dl>
+              {option.pros && <div><dt>장점</dt><dd>{displayText(option.pros)}</dd></div>}
+              {option.cons && <div><dt>단점</dt><dd>{displayText(option.cons)}</dd></div>}
+              {option.cost && <div><dt>비용과 리스크</dt><dd>{displayText(option.cost)}</dd></div>}
+            </dl>
+          </article>
+        );
+      })}
     </div>
   );
 }

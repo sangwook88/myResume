@@ -9,10 +9,10 @@ export default function AskSectionButton({ question }: { question: string }) {
     <button
       type="button"
       className="ask-sec"
-      title="이 부분 물어보기"
+      title="이 내용을 챗봇에 질문하기"
       onClick={() => askChat(question)}
     >
-      💬 물어보기
+      챗봇에 질문
     </button>
   );
 }

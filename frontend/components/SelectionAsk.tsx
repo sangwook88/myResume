@@ -84,19 +84,13 @@ export default function SelectionAsk({ containerId }: { containerId: string }) {
     function onKeyUp() {
       setTimeout(evaluate, 0);
     }
-    // 스크롤하면 rect가 낡으므로 숨긴다.
-    function onScroll() {
-      hide();
-    }
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('touchend', onTouchEnd);
     document.addEventListener('keyup', onKeyUp);
-    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('scroll', onScroll, true);
     };
   }, [evaluate, hide]);
 
@@ -117,7 +111,7 @@ export default function SelectionAsk({ containerId }: { containerId: string }) {
         hide();
       }}
     >
-      💬 이 부분 물어보기
+      선택한 내용 질문
     </button>
   );
 }

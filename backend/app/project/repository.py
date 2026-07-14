@@ -6,8 +6,8 @@
   frontmatter에 없으면 본문 전체(있으면)로 보완한다.
 
 slug 정본은 디렉토리 이름(`wiki/<slug>/`)이다 — 포인트의 `project` frontmatter와 매칭되는 값.
-이 모듈은 파일 파싱과 관리자 도식의 원자적 파일 저장만 담당한다(Pydantic 미의존).
-DTO 조립과 업로드 검증은 service가 담당한다.
+이 모듈은 파일 파싱과 관리자 표지·도식의 원자적 파일 저장만 담당한다(Pydantic 미의존).
+DTO 조립과 입력 검증은 service가 담당한다.
 
 콘텐츠 루트는 be/point와 동일하게 리포 루트의 `wiki/`(검증용 WIKI_ROOT로 재정의 가능).
 be/point 리포지토리를 import하지 않고 같은 환경변수만 공유한다(도메인 내부 비침범).
@@ -45,6 +45,42 @@ def _find_project_dir(slug: str) -> Path | None:
 def project_exists(slug: str) -> bool:
     """실존 프로젝트 표지가 있는 안전한 단일-segment slug인지 반환."""
     return _find_project_dir(slug) is not None
+
+
+def index_path_of_slug(slug: str) -> Path | None:
+    """실존 프로젝트를 스캔해 정확히 일치하는 ``index.md`` 경로를 반환한다."""
+    project_dir = _find_project_dir(slug)
+    if project_dir is None:
+        return None
+    return project_dir / "index.md"
+
+
+def save_index_markdown(slug: str, text: str) -> None:
+    """프로젝트 표지 원문을 같은 디렉터리의 임시 파일로 원자적 교체한다."""
+    target = index_path_of_slug(slug)
+    if target is None:
+        raise FileNotFoundError(slug)
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(text)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, target)
+    except BaseException:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def save_diagram_svg(slug: str, svg_bytes: bytes) -> None:

@@ -48,6 +48,12 @@ class ProjectSummary(CamelModel):
     summary: str
 
 
+class ProjectEdit(CamelModel):
+    """관리자 편집 입력. 서식 손실을 막기 위해 전체 index.md 원문을 받는다."""
+
+    content: str
+
+
 class ProjectIndex(ProjectSummary):
     """프로젝트인덱스 화면 본체: 표지 6요소 + 파생 포인트 목록."""
 

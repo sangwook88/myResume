@@ -1,4 +1,4 @@
-"""be/project FastAPI 라우터: 공개 조회 + 관리자 SVG 도식 업로드.
+"""be/project FastAPI 라우터: 공개 조회 + 관리자 표지 편집·SVG 도식 업로드.
 
 경로 선언 순서 주의: 카탈로그(`""`)와 단건(`/{slug}`)은 충돌하지 않지만,
 be/point와 동일하게 고정 경로를 먼저 둔다.
@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from app.admin import require_admin
 from app.project import repository, service
-from app.project.models import ProjectIndex, ProjectSummary
+from app.project.models import ProjectEdit, ProjectIndex, ProjectSummary
 
 router = APIRouter(prefix="/api/projects", tags=["project"])
 
@@ -33,6 +33,16 @@ def get_admin_projects(request: Request) -> list[ProjectSummary]:
     return service.list_all_admin()
 
 
+@router.get("/admin/{slug}/raw", response_model=dict[str, str])
+def get_admin_project_raw(slug: str, request: Request) -> dict[str, str]:
+    """관리자 편집기 프리필용 전체 index.md 원문. Bearer 필요."""
+    require_admin(request)
+    content = service.get_raw_admin(slug)
+    if content is None:
+        raise HTTPException(status_code=404)
+    return {"content": content}
+
+
 @router.get("/admin/{slug}", response_model=ProjectIndex)
 def get_admin_project(slug: str, request: Request):
     """draft 포함 포인트를 조립한 프로젝트 인덱스(관리자). 없으면 404."""
@@ -41,6 +51,18 @@ def get_admin_project(slug: str, request: Request):
     if index is None:
         raise HTTPException(status_code=404)
     return index
+
+
+@router.put("/admin/{slug}", response_model=ProjectIndex)
+def update_admin_project(slug: str, edit: ProjectEdit, request: Request) -> ProjectIndex:
+    """기존 프로젝트의 전체 index.md 원문을 검증 후 저장한다. Bearer 필요."""
+    require_admin(request)
+    try:
+        return service.update_project_admin(slug, edit.content)
+    except service.ProjectNotFoundError as exc:
+        raise HTTPException(status_code=404) from exc
+    except service.InvalidProjectError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 async def _read_body_limited(request: Request, limit: int) -> bytes:

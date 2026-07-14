@@ -1,8 +1,9 @@
-"""be/project 서비스(TS): 표지 조회·포인트목록 조립 + 관리자 도식 쓰기.
+"""be/project 서비스(TS): 표지 조회·포인트목록 조립 + 관리자 표지·도식 쓰기.
 
 후속 wave(be/chat load-all 코퍼스·fe/browse)가 계약으로 쓰는 공개 시그니처:
 - list_projects() -> list[ProjectSummary]
 - get_index(slug: str) -> ProjectIndex | None
+- update_project_admin(slug: str, content: str) -> ProjectIndex
 - set_diagram_admin(slug: str, svg: bytes) -> ProjectIndex
 
 관리자 조회는 공개 경로와 물리적으로 분리해 draft 포인트를 포함한다:
@@ -17,6 +18,8 @@ from __future__ import annotations
 
 from xml.etree import ElementTree
 
+import yaml
+
 from app.point import service as point_service
 from app.project import repository
 from app.project.models import ProjectIndex, ProjectSummary
@@ -26,6 +29,10 @@ MAX_DIAGRAM_SVG_BYTES = 2 * 1024 * 1024
 
 class ProjectNotFoundError(LookupError):
     """관리자 쓰기 대상 프로젝트가 존재하지 않음."""
+
+
+class InvalidProjectError(ValueError):
+    """관리자 편집 원문이 프로젝트 표지 규약을 충족하지 않음."""
 
 
 class InvalidDiagramError(ValueError):
@@ -100,6 +107,43 @@ def get_index_admin(slug: str) -> ProjectIndex | None:
         highlights=raw["highlights"],
         points=points,
     )
+
+
+def get_raw_admin(slug: str) -> str | None:
+    """관리자 편집기 프리필용 index.md 원문. 없으면 None."""
+    path = repository.index_path_of_slug(slug)
+    if path is None:
+        return None
+    with path.open("r", encoding="utf-8", newline="") as file:
+        return file.read()
+
+
+def update_project_admin(slug: str, content: str) -> ProjectIndex:
+    """전체 index.md 원문을 검증·원자적 저장하고 관리자 인덱스를 재조회한다."""
+    if not content.strip():
+        raise InvalidProjectError("content가 비어 있습니다.")
+
+    if repository.index_path_of_slug(slug) is None:
+        raise ProjectNotFoundError(slug)
+
+    try:
+        frontmatter, _ = repository._split_frontmatter(content)
+    except (TypeError, ValueError, yaml.YAMLError) as exc:
+        raise InvalidProjectError(f"마크다운 파싱 실패: {exc}") from exc
+
+    frontmatter_slug = frontmatter.get("slug")
+    if frontmatter_slug is not None and frontmatter_slug != slug:
+        raise InvalidProjectError("frontmatter slug가 URL slug와 일치하지 않습니다.")
+
+    try:
+        repository.save_index_markdown(slug, content)
+    except FileNotFoundError as exc:
+        raise ProjectNotFoundError(slug) from exc
+
+    updated = get_index_admin(slug)
+    if updated is None:
+        raise ProjectNotFoundError(slug)
+    return updated
 
 
 def _validate_diagram_svg(svg: bytes) -> None:

@@ -43,6 +43,8 @@
 | fe/browse | 포인트 페이지는 visible만 렌더(invidence 숨김) + 프로젝트 페이지에 도식 SVG 임베드 |
 | fe/chat | 변화 없음(코드는 마크다운 코드펜스로 이미 렌더) |
 
+be/project는 랜딩의 사이트 프로필(`wiki/profile.md`)과 프로필 사진(`wiki/profile/`)도 소유·서빙한다(조회·사진은 공개, 편집·업로드는 관리자 전용).
+
 > 코드 공급 경계 결정: 별도 `be/git` 도메인을 만들지 않고 **Evidence 밑 `invidence` 하위 층**으로 흡수(같은 마크다운 파일·같은 발행 게이트 공유). 나중 v3 자동 git 분석이 실제로 필요해지면 그때 be/git로 승격 재검토.
 
 > 안 만드는 도메인(YAGNI, 2026-07-13 피벗): be/raw·be/git(자동 소스)·be/wiki 저작 엔진(자동화)·RAG 서빙·풀 HITL 승인 → **안 함**(`pofol` 로컬 저작이 대체). 코드 공급은 be/point invidence 하위 층으로 흡수해 v4에 반영됨. 근거: [roadmap](roadmap.md) 「안 함」 · [[evidence-and-rag]]·[[authoring-local-vs-serving-api]] (메모리).

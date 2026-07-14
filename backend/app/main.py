@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.chat.router import router as chat_router
 from app.point.router import router as point_router
+from app.project.profile_router import router as profile_router
 from app.project.router import router as project_router
 
 # Swagger UI(/docs) 상단에 표시되는 API 개요. 계약은 바꾸지 않고 설명만 제공한다.
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(point_router)
     app.include_router(project_router)
+    app.include_router(profile_router)
     app.include_router(chat_router)
     return app
 

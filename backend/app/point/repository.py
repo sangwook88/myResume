@@ -258,6 +258,8 @@ def iter_raw() -> Iterator[dict]:
     if not WIKI_ROOT.exists():
         return
     for path in sorted(WIKI_ROOT.rglob("*.md")):
+        if path.name == "profile.md":  # 사이트 프로필은 be/project 소유
+            continue
         if path.name == "index.md":  # be/project 소유
             continue
         if path.name.endswith(".code.md"):  # invidence.code 사이드카(포인트 아님)

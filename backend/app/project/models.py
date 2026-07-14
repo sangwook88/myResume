@@ -1,6 +1,7 @@
 """be/project DTO (Pydantic). API 직렬화 키 케이스 = camelCase (ARCHITECTURE §5).
 
-계약 근거: tickets/be/0002-be-project.md §5.
+계약 근거: tickets/be/0002-be-project.md §5, tickets/be/0011-be-project-profile.md §5.
+- Profile/ProfileEdit = 사이트 프로필 조회·관리자 편집 DTO
 - ProjectSummary = { slug, summary }
 - ProjectIndex = ProjectSummary + { role, period, teamSize, techStack,
   architecture, highlights, points: PointSummary[] }
@@ -13,6 +14,30 @@ camelCase 직렬화 규약(CamelModel)과 포인트 요약(PointSummary)은 be/p
 from __future__ import annotations
 
 from app.point.models import CamelModel, PointSummary
+
+
+class Profile(CamelModel):
+    """랜딩에 노출하는 사이트 단위 프로필."""
+
+    name: str = ""
+    headline: str = ""
+    photo: str | None = None
+    github: str = ""
+    phone: str = ""
+    email: str = ""
+    intro: str = ""
+
+
+class ProfileEdit(CamelModel):
+    """관리자 프로필 편집 입력. 빈 값도 유효한 저장 값이다."""
+
+    name: str = ""
+    headline: str = ""
+    photo: str | None = None
+    github: str = ""
+    phone: str = ""
+    email: str = ""
+    intro: str = ""
 
 
 class ProjectSummary(CamelModel):

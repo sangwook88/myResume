@@ -7,6 +7,7 @@ import EvidenceList from '@/components/EvidenceList';
 import AskSectionButton from '@/components/AskSectionButton';
 import SelectionAsk from '@/components/SelectionAsk';
 import PointRail, { type RailSection } from '@/components/PointRail';
+import Markdown from '@/components/Markdown';
 
 export interface PointViewProps {
   point: Point;
@@ -88,7 +89,7 @@ export default function PointView({
               <div className="section-label"><span className="n">{numOf('problem')}</span>문제</div>
               <AskSectionButton question="이 포인트가 풀려던 문제를 더 자세히 설명해줘" />
             </div>
-            <p>{s.problem}</p>
+            <Markdown>{s.problem}</Markdown>
           </section>
         )}
 
@@ -107,7 +108,7 @@ export default function PointView({
               <div className="section-label"><span className="n">{numOf('decision')}</span>결정과 근거</div>
               <AskSectionButton question="이 결정의 근거를 더 자세히 설명해줘" />
             </div>
-            <p>{s.decision}</p>
+            <Markdown>{s.decision}</Markdown>
           </section>
         )}
 
@@ -115,7 +116,7 @@ export default function PointView({
         {s.result && (
           <section id="result">
             <div className="section-label"><span className="n">{numOf('result')}</span>결과</div>
-            <p>{s.result}</p>
+            <Markdown>{s.result}</Markdown>
           </section>
         )}
 

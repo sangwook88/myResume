@@ -6,6 +6,8 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
+
 export default function Markdown({
   children,
   className = "md-doc",
@@ -20,6 +22,15 @@ export default function Markdown({
         components={{
           a: ({ node, ...props }) => (
             <a target="_blank" rel="noopener noreferrer" {...props} />
+          ),
+          img: ({ node, src, style, ...props }) => (
+            // eslint-disable-next-line @next/next/no-img-element -- BE가 서빙하는 사용자 첨부 이미지
+            <img
+              src={typeof src === "string" && src.startsWith("/api/") ? `${API_BASE}${src}` : src}
+              loading="lazy"
+              style={{ maxWidth: "100%", height: "auto", ...style }}
+              {...props}
+            />
           ),
         }}
       >

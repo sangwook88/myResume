@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     구현 티켓(tickets/<side>/NNNN-*.md) 또는 도메인 폴더 1개를 구현 엔진(codex 기본 / claude)에 넘겨 새 브랜치에서 "구현만" 시킨다.
 .DESCRIPTION
@@ -38,7 +38,17 @@ param(
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
-try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+# UTF-8 고정 — 한글 프롬프트가 셸(Windows PowerShell 5.1 은 ANSI/CP949 기본)·네이티브 파이프에서
+# 깨지지 않게. 특히 5.1 의 $OutputEncoding 기본값은 US-ASCII 라 반드시 UTF-8 로 덮어써야
+# stdin 파이프로 넘기는 한글이 '?' 로 뭉개지지 않는다. 이 파일은 UTF-8 BOM 으로 저장해
+# 5.1 이 여기 한글 리터럴을 ANSI 로 잘못 읽는 것도 막는다(BOM 없으면 파싱 단계에서 깨짐).
+try {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [Console]::OutputEncoding = $utf8NoBom
+    [Console]::InputEncoding = $utf8NoBom
+    $OutputEncoding = $utf8NoBom
+    chcp 65001 > $null 2>&1
+} catch {}
 function Fail($m) { Write-Host "[implement] 오류: $m" -ForegroundColor Red; exit 1 }
 function Info($m) { Write-Host "[implement] $m" -ForegroundColor Cyan }
 
@@ -211,17 +221,21 @@ function Resolve-Bin([string[]]$names) {
 }
 if ($DryRun) { Info "[dry-run] 엔진=$Engine. 프롬프트:"; Write-Host $prompt; exit 0 }
 
+# 프롬프트는 argv 대신 stdin 으로 넘긴다 — 한글이 네이티브 argv(Windows 는 ANSI 코드페이지로
+# 재인코딩)에서 깨지는 것을 원천 차단. $OutputEncoding=UTF-8 이라 파이프는 UTF-8 바이트로 나간다.
 if ($Engine -eq 'codex') {
     $bin = Resolve-Bin @('codex', 'codex.cmd', 'codex.exe')
     if (-not $bin) { Fail "codex 실행 파일을 못 찾음. PATH 확인 또는 -Engine claude." }
     Info "codex 실행 (workspace-write)..."
-    & $bin 'exec' '--cd' $repo '--sandbox' 'workspace-write' $prompt
+    # codex exec: PROMPT 자리에 '-' → 지시문을 stdin 에서 읽는다(--help 참조).
+    $prompt | & $bin 'exec' '--cd' $repo '--sandbox' 'workspace-write' '-'
 }
 else {
     $bin = Resolve-Bin @('claude', 'claude.cmd', 'claude.exe')
     if (-not $bin) { Fail "claude 실행 파일을 못 찾음. PATH 확인 또는 -Engine codex." }
     Info "claude 실행 (헤드리스)..."
-    & $bin '-p' $prompt
+    # claude -p: 위치 프롬프트 없이 파이프하면 stdin 을 프롬프트로 읽는다.
+    $prompt | & $bin '-p'
 }
 $code = $LASTEXITCODE
 Write-Host ""

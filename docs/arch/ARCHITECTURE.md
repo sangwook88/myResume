@@ -17,6 +17,8 @@
 | 콘텐츠 서빙 | **Python API 단일 소스** | Python이 `wiki/*.md`를 읽어 be/point·be/project API로 서빙. chat load-all도 같은 파일을 읽어 단일 소스. FE는 그 API를 fetch(SSG/SSR). |
 | 배포 | FE=정적/Edge 호스팅, BE=컨테이너 | *[입력 필요: 구체 플랫폼(Vercel/기타)·CI]* |
 
+> **승인된 쓰기 경계 확장(2026-07-14):** 관리자 전용 be/point API가 단락 첨부 이미지를 `wiki/<project>/assets/`에 원자적으로 저장한다. 이미지는 git 콘텐츠의 일부이며 자동 커밋하지 않는다. 공개 API는 저장된 래스터 이미지(png·jpeg·gif·webp)만 서빙한다.
+
 ## 2. 레이어·모듈 경계
 
 - 최상위 = **FE vs BE 2분할**. FE=플로우+표현(V), BE=데이터(M)+기능(C).
@@ -51,7 +53,7 @@ be/project → be/point                     (index 포인트목록 = frontmatter
 
 ## 5. 데이터·영속
 
-- **콘텐츠(위키)** = git 버전관리 마크다운. frontmatter YAML(포인트: id·title·project·status·tags·commits·updated / 표지: slug·summary·role·period·teamSize·techStack·architecture·highlights). Python이 파싱해 서빙.
+- **콘텐츠(위키)** = git 버전관리 마크다운 + 포인트 부속 래스터 이미지(`wiki/<project>/assets/`). frontmatter YAML(포인트: id·title·project·status·tags·commits·updated / 표지: slug·summary·role·period·teamSize·techStack·architecture·highlights). Python이 파싱·서빙하며, 관리자가 업로드한 이미지 파일도 사람이 나중에 수동 커밋한다.
 - **세션** = Redis KV. `session_id`(세션 쿠키) → turns(role·text·citations). **TTL 1일 sliding**(활동마다 갱신, 만료 자동 삭제).
 - **DTO·직렬화** = FE↔BE JSON API. **키 케이스 = camelCase**(FE TS 소비, ticket에서 확정).
 - 챗 스트리밍 = SSE(FastAPI StreamingResponse ← Claude 스트리밍).
@@ -74,6 +76,7 @@ be/project → be/point                     (index 포인트목록 = frontmatter
 - **프롬프트 캐싱**: `cache_control: ephemeral`(기본 ~5분) 확정 — v1 트래픽·코퍼스 규모엔 충분. 브레이크포인트 = system prefix(코퍼스) 1개. → **v4-B에서 정상화·확장**(프리픽스 안정성 수정 + TTL 1h). 아래 v4 확장 참조.
 - **세션 스토어(Redis)**: 구현 확정 — 키 `chat:session:{session_id}`, JSON 1개, TTL 86400초 sliding(load·save마다 갱신).
 - **세션 쿠키**: 서버 발급 opaque `session_id`, `HttpOnly`·`SameSite=Lax`·`Max-Age=86400`. `Secure`는 HTTPS 배포 시 켠다(플랫폼/리버스 프록시에서 TLS 종단).
+- **be/point 이미지 쓰기 경계**: 오너 승인 확장. `POST /api/points/admin/{point_id}/images`만 관리자 인증 후 래스터 이미지를 쓰고, `GET /api/points/assets/{project}/{filename}`은 published 페이지 렌더를 위해 공개한다. 삭제·목록·변환·자동 git 커밋은 하지 않는다.
 
 ---
 

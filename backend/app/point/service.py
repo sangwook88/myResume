@@ -1,4 +1,4 @@
-"""be/point 서비스(TS): 공개 조회 3종 + 관리자 조회·편집.
+"""be/point 서비스(TS): 공개 조회 3종 + 관리자 조회·편집·이미지 저장.
 
 공개 조회는 published만 노출하고, 관리자 기능의 인증 게이트는 router가 담당한다.
 
@@ -26,14 +26,25 @@ from app.point.models import (
 )
 
 _FEATURED = "featured"
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+_ALLOWED_IMAGE_TYPES = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
 
 
 class PointNotFoundError(LookupError):
-    """관리자 편집 대상 point_id가 존재하지 않음."""
+    """관리자 쓰기 대상 point_id가 존재하지 않음."""
 
 
 class PointValidationError(ValueError):
     """관리자 편집 원문이 포인트 문서 규약을 충족하지 않음."""
+
+
+class InvalidImageError(ValueError):
+    """업로드 이미지가 MIME 타입·크기 계약을 충족하지 않음."""
 
 
 def _to_summary(raw: dict) -> PointSummary:
@@ -186,6 +197,33 @@ def update_point_admin(point_id: str, content: str) -> Point:
     if updated is None:
         raise RuntimeError("저장한 포인트를 다시 조회할 수 없습니다.")
     return updated
+
+
+def save_point_image_admin(point_id: str, data: bytes, content_type: str) -> dict[str, str]:
+    """포인트 소속 프로젝트에 래스터 이미지를 저장하고 삽입용 마크다운을 반환한다."""
+    raw = repository.find_raw_by_id(point_id)
+    if raw is None:
+        raise PointNotFoundError(point_id)
+
+    media_type = content_type.partition(";")[0].strip().lower()
+    ext = _ALLOWED_IMAGE_TYPES.get(media_type)
+    if ext is None:
+        raise InvalidImageError("PNG·JPEG·GIF·WebP 이미지만 업로드할 수 있습니다.")
+    if not data:
+        raise InvalidImageError("이미지 본문이 비어 있습니다.")
+    if len(data) > MAX_IMAGE_BYTES:
+        raise InvalidImageError("이미지는 5 MiB 이하여야 합니다.")
+
+    project = raw.get("project")
+    if not isinstance(project, str):
+        raise InvalidImageError("포인트의 project가 올바르지 않습니다.")
+    try:
+        filename = repository.save_image(project, ext, data)
+    except ValueError as exc:
+        raise InvalidImageError(str(exc)) from exc
+
+    url = f"/api/points/assets/{project}/{filename}"
+    return {"url": url, "markdown": f"![](<{url}>)", "filename": filename}
 
 
 def get_chatbot_point(point_id: str) -> ChatbotPoint | None:

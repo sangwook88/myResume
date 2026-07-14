@@ -2,14 +2,14 @@
 
 파일 구조 (데이터.md):
 - frontmatter YAML: id·title·project·status·tags·commits·updated
-- 본문 9섹션(H2 헤딩): 제목·요약 / 배경 / 문제 / 고려한 옵션(표) / 결정과 근거 /
-  실행 / 결과 / 회고 / Evidence(표)
+- 본문: 제목·요약 + 핵심 4섹션 + 심화 3섹션 + Evidence(표)
+- 부속 이미지: wiki/<project>/assets/<서버 생성 파일명>
 
 be/project 소유인 `index.md`는 이 도메인 대상이 아니므로 스캔에서 제외한다.
 콘텐츠 루트는 리포 루트의 `wiki/` (WIKI_ROOT 환경변수로 재정의 가능 — 검증용).
 
-이 모듈은 파싱과 기존 문서의 원자적 저장을 담당한다(Pydantic 미의존).
-DTO 조립·편집 검증은 service가 담당하고, 발행 게이트(publish_errors)는
+이 모듈은 파싱과 기존 문서·부속 이미지의 원자적 저장을 담당한다(Pydantic 미의존).
+DTO 조립·편집·이미지 검증은 service가 담당하고, 발행 게이트(publish_errors)는
 scripts/publish.py가 재사용한다.
 """
 
@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import os
 import re
+import secrets
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
@@ -26,6 +28,8 @@ import yaml
 # repository.py = backend/app/point/repository.py → parents[3] = 리포 루트
 _DEFAULT_WIKI = Path(__file__).resolve().parents[3] / "wiki"
 WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(_DEFAULT_WIKI)))
+
+_IMAGE_EXTENSIONS = frozenset({"png", "jpg", "gif", "webp"})
 
 # 본문 텍스트 섹션(표가 아닌 것). options/evidence는 표라 별도 처리.
 _TEXT_SECTIONS = ("background", "problem", "decision", "execution", "result", "retrospective")
@@ -279,6 +283,97 @@ def path_of_id(point_id: str) -> Path | None:
         if raw.get("id") == point_id:
             return Path(raw["_path"])
     return None
+
+
+def _is_single_segment(value: str) -> bool:
+    """경로 구분자·현재/부모 디렉터리·Windows 드라이브 표기를 거부한다."""
+    return bool(value) and value not in {".", ".."} and not any(
+        char in value for char in ("/", "\\", ":", "\0")
+    )
+
+
+def assets_dir_for_project(project: str) -> Path:
+    """검증된 단일-segment 프로젝트의 이미지 디렉터리 경로를 반환한다."""
+    if not _is_single_segment(project):
+        raise ValueError("project는 안전한 단일 경로 세그먼트여야 합니다.")
+    return WIKI_ROOT / project / "assets"
+
+
+def _resolved_assets_dir(project: str, *, create: bool) -> Path:
+    """wiki 바로 아래 프로젝트에 속한 실제 assets 경로만 반환한다."""
+    assets_dir = assets_dir_for_project(project)
+    project_dir = assets_dir.parent
+    if create:
+        project_dir.mkdir(parents=True, exist_ok=True)
+    if not project_dir.is_dir():
+        raise FileNotFoundError(project_dir)
+
+    resolved_root = WIKI_ROOT.resolve()
+    resolved_project = project_dir.resolve()
+    if resolved_project.parent != resolved_root:
+        raise ValueError("assets 경로가 wiki 프로젝트 디렉터리를 벗어납니다.")
+
+    if create:
+        assets_dir.mkdir(exist_ok=True)
+    if not assets_dir.is_dir():
+        raise FileNotFoundError(assets_dir)
+    resolved_assets = assets_dir.resolve()
+    if resolved_assets.parent != resolved_project:
+        raise ValueError("assets 경로가 wiki 프로젝트 디렉터리를 벗어납니다.")
+    return resolved_assets
+
+
+def save_image(project: str, ext: str, data: bytes) -> str:
+    """이미지를 서버 생성 파일명으로 ``assets/``에 원자적으로 저장한다.
+
+    서비스가 MIME 타입을 검증하지만, 리포지토리도 허용 확장자만 받아 다른 파일 형식이
+    공개 애셋 경로에 들어가는 것을 막는다. 임시 파일은 실패 시 항상 정리한다.
+    """
+    normalized_ext = ext.lower()
+    if normalized_ext not in _IMAGE_EXTENSIONS:
+        raise ValueError("허용되지 않은 이미지 확장자입니다.")
+
+    assets_dir = _resolved_assets_dir(project, create=True)
+
+    while True:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        filename = f"{timestamp}-{secrets.token_hex(6)}.{normalized_ext}"
+        target = assets_dir / filename
+        if not target.exists():
+            break
+
+    fd, temp_name = tempfile.mkstemp(
+        dir=assets_dir,
+        prefix=f".{filename}.",
+        suffix=".tmp",
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "wb") as temp_file:
+            temp_file.write(data)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, target)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
+    return filename
+
+
+def image_path(project: str, filename: str) -> Path | None:
+    """공개 가능한 실존 래스터 이미지 경로만 반환한다(경로 탈출 시 None)."""
+    if not _is_single_segment(filename):
+        return None
+    if Path(filename).suffix.lower().lstrip(".") not in _IMAGE_EXTENSIONS:
+        return None
+    try:
+        assets_dir = _resolved_assets_dir(project, create=False)
+        candidate = (assets_dir / filename).resolve(strict=True)
+    except (FileNotFoundError, OSError, RuntimeError, ValueError):
+        return None
+    if candidate.parent != assets_dir or not candidate.is_file():
+        return None
+    return candidate
 
 
 def save_markdown(path: Path, text: str) -> None:

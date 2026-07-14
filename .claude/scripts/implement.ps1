@@ -221,6 +221,13 @@ function Resolve-Bin([string[]]$names) {
 }
 if ($DryRun) { Info "[dry-run] 엔진=$Engine. 프롬프트:"; Write-Host $prompt; exit 0 }
 
+# Windows: 엔진 샌드박스(restricted-token CreateProcessAsUserW)가 WindowsApps '앱 실행 별칭'
+# (%LOCALAPPDATA%\Microsoft\WindowsApps\pwsh.exe = ACL 보호된 Program Files\WindowsApps 로의
+# 리파스 포인트)을 못 띄워 오류 1920(파일 접근 불가)으로 죽는 문제 회피. PATH 에서 그 별칭
+# 디렉토리만 제거하면 네이티브 셸 해석이 실제 바이너리(System32\powershell.exe)로 폴백해
+# 샌드박스를 유지한 채 정상 스폰된다. 자식 엔진이 이 PATH 를 상속한다.
+$env:PATH = ($env:PATH -split ';' | Where-Object { $_ -and ($_ -notlike '*\Microsoft\WindowsApps*') }) -join ';'
+
 # 프롬프트는 argv 대신 stdin 으로 넘긴다 — 한글이 네이티브 argv(Windows 는 ANSI 코드페이지로
 # 재인코딩)에서 깨지는 것을 원천 차단. $OutputEncoding=UTF-8 이라 파이프는 UTF-8 바이트로 나간다.
 if ($Engine -eq 'codex') {

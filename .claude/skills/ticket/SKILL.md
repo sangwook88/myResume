@@ -38,6 +38,7 @@ ARCHITECTURE §4 도메인 기본값(TS/DM)에서 출발. 기능 성격이 기�
 - 프런트매터 필수: `id` · `branch`(feat/<slug>) · `base`(기본 main) · `domain`(fe/<name> 또는 be/<name>) · `stage`(M/C/V) · `pattern`(TS/DM, ARCHITECTURE 기준) · `engine`(codex/claude) · `status: ready` · `created`.
 - **자기완결성** — 콜드 에이전트가 이 티켓만 읽고 구현 가능한가? 변경 파일 경로·시그니처·DTO 필드 구체적. "적절히"·"알아서" 금지.
 - **범위 경계(하지 말 것)** 필수.
+- **`engine: codex` 면 「QA 하지 말 것」을 §8 범위 경계에 명시.** codex 는 구현만 한다 — QA(테스트 실행·수동 검증·수용 기준 판정)는 §7-1 감독 루프에서 Claude 가 한다(4단계 검수). 그래서 codex 티켓의 §8 에 한 줄 박는다: *"QA·검증 금지 — 구현만. 테스트 실행·수동 검증·수용 기준 판정은 하지 않는다(감독 Claude 몫)."* `engine: claude` 면 이 줄은 넣지 않는다(스스로 검증).
 
 ## 6. 의존 순서 플로우
 `docs/HOME.md` 참조 그래프로 티켓을 **wave/순서**로 묶는다 — BE 먼저(FE가 부르는 기능이 있어야 하므로), 그 BE를 부르는 FE는 뒤. BE 간 의존은 단방향 순서대로. 순환 보이면 멈추고 decompose 경계 재검토 안내. 출력: 티켓 번호 × 순서 표.
@@ -52,17 +53,17 @@ ARCHITECTURE §4 도메인 기본값(TS/DM)에서 출발. 기능 성격이 기�
    ```
    `base`에서 `branch`를 따 `engine`에게 "이 티켓만 구현"시킨다. 검토·커밋·푸시는 사람.
 
-### 7-1. `/ticket <engine>` — Orca 격리 워크트리에서 자동 구현 + Claude 감독
+### 7-1. `/ticket <engine>` — Orca 격리 워크트리에서 codex CLI 자동 구현 + Claude 감독
 `/ticket codex`(또는 `/ticket claude`)처럼 **엔진 인자**가 오면 아래 감독 루프를 돈다. 전제: `TERM_PROGRAM=Orca`.
 
 1. **티켓 작성 → 사람 확인(검수 게이트).** "이 티켓 구현할까요?" 확인 없이는 아래로 못 넘어간다. 엔진 인자가 있어도 **사람 확인이 게이트**다.
-2. **격리 워크트리에서 구현 착수.** 확인되면 메인 스레드가 실행:
+2. **격리 워크트리에서 codex CLI 착수.** 확인되면 메인 스레드가 실행:
    ```
    powershell "${DDD_ROOT}/scripts/implement.ps1" -Side <be|fe> -Ticket <경로> -Engine <codex|claude> -Worktree
    ```
-   `-Worktree` 는 `orca worktree create` 로 **새 격리 git 워크트리**(메인 체크아웃 무오염)를 만들고, 그 안의 새 탭에서 엔진이 headless 로 구현한다. 출력의 `ORCA-HANDOFF worktreeId/worktreePath/worktreeBranch/terminalHandle` 를 받아 둔다.
-3. **완료 대기(Claude).** `orca terminal wait --terminal <handle> --for tui-idle --json` (넉넉히 `--timeout-ms`). 필요하면 `orca terminal read --terminal <handle> --json` 로 진행/`[implement] 엔진 종료(exit 0)` 마커를 확인한다.
+   `-Worktree` 는 `orca worktree create` 로 **새 격리 git 워크트리**(메인 체크아웃 무오염)를 만들고, 그 안의 **새 탭에 대화형 codex CLI(TUI)를 띄운다**(`codex -s workspace-write -a never`, 승인 없이 자동 진행 — 눈으로 보인다). 한국어 구현 프롬프트는 워크트리의 `.orca/impl-prompt.md`(UTF-8, git exclude 처리)에 기록하고 codex 에는 "그 파일을 읽어 그대로 구현하라"는 **ASCII 한 줄**만 넘긴다 — 한글을 argv 로 주면 `codex.cmd`→`cmd.exe` 의 ANSI 재인코딩으로 `?` 로 깨지므로. 출력의 `ORCA-HANDOFF worktreeId/worktreePath/worktreeBranch/terminalHandle` 를 받아 둔다.
+3. **완료 대기(Claude).** `orca terminal wait --terminal <handle> --for tui-idle --json` (넉넉히 `--timeout-ms`) — codex 가 초기 프롬프트를 다 처리하고 idle 로 돌아오면 완료. 필요하면 `orca terminal read --terminal <handle> --json` 로 진행을 확인한다.
 4. **검수(Claude = 목표 달성 판정).** 티켓의 「구현목표/수용기준」·「경계(하지 말 것)」을 다시 읽고 `git -C "<worktreePath>" diff <base>` 로 실제 변경을 대조한다 — 수용 기준을 모두 충족했는가, 경계를 넘지 않았는가. 미충족이면 무엇이 빠졌는지 정리해 그 탭에 후속 지시(`orca terminal send`)하거나 사람에게 갈림길로 올린다.
 5. **완료 알림.** 다 되면 "됐다"고 알린다 — 대화로 보고 + (자리 비움 대비) `PushNotification` 으로 핑. 변경 요약·수용 기준 충족 여부·워크트리 브랜치(`<worktreeBranch>`)를 함께 준다. 병합·커밋·푸시는 사람. 워크트리 정리는 `orca worktree rm --worktree name:<slug> --force`.
 
-> 가벼운 대안(격리 불필요): `-Worktree` 대신 `-NewTerminal`(별칭 `-Orca`) — 현재 체크아웃을 공유하는 새 탭에서 구현(브랜치 체크아웃이 메인 창에도 반영됨). 감독 없이 그냥 새 탭만 띄울 때.
+> 가벼운 대안(격리 불필요): `-Worktree` 대신 `-NewTerminal`(별칭 `-Orca`) — 현재 체크아웃을 공유하는 새 탭에서 같은 방식(대화형 codex CLI + 파일 프롬프트)으로 구현하되, 브랜치 체크아웃이 메인 창에도 반영된다.

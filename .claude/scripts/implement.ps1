@@ -102,30 +102,88 @@ if ($isDomain) {
 if (-not $NoBranch -and -not $branch) { Fail "프런트매터에 branch 가 없습니다. -NoBranch 를 쓰거나 branch: 를 채우세요." }
 Info "${kind}: $ticketRel / 엔진: $Engine / status: $status"
 
-# ── Orca IDE 통합 ── (새 탭 / 격리 워크트리에서 구현시키기)
-function Resolve-Orca {
-    if ($env:TERM_PROGRAM -ne 'Orca') { Fail "Orca IDE 터미널에서만 동작합니다(현재 TERM_PROGRAM=$($env:TERM_PROGRAM))." }
-    $gc = Get-Command 'orca' -ErrorAction SilentlyContinue
-    if ($gc) { return $gc.Source }
-    foreach ($cand in @(
-            (Join-Path $env:LOCALAPPDATA 'Programs\orca\resources\bin\orca.cmd'),
-            (Join-Path ${env:ProgramFiles} 'orca\resources\bin\orca.cmd'))) {
-        if ($cand -and (Test-Path $cand)) { return $cand }
-    }
-    Fail "orca CLI(resources/bin/orca.cmd) 를 못 찾음 — Orca 설치 경로 확인."
+# 구현 지시 프롬프트(한국어). 파일로도, stdin(인라인 헤드리스)으로도 쓴다.
+function Build-Prompt([string]$branchName) {
+    return @"
+너는 이 리포에서 $kind 1개를 구현하는 에이전트다. 지금 브랜치는 '$branchName'.
+읽을 ${kind}: $ticketRel  (도메인 폴더면 그 안의 README·플로우/요소 또는 데이터/기능 문서를 전부 읽어라)
+규약 SoT: docs/arch/ARCHITECTURE.md (먼저 읽어라).
+규칙(엄수):
+1. $kind 를 끝까지 읽고 「구현목표/수용기준」(도메인 폴더면 데이터.md·기능_*.md 또는 플로우·요소)대로만 구현한다.
+2. 「경계 — 하지 말 것」을 절대 어기지 않는다: 지정 범위 밖 수정·재설계·리네이밍·겸사겸사 리팩터·새 의존 추가 금지. 의존 도메인은 읽기만.
+3. 코드 영문 / 주석·문서 한국어. 명명·직렬화는 ARCHITECTURE 컨벤션을 따른다.
+4. 「수용 기준」을 모두 충족한다(엣지 케이스 행이 있으면 각 행도).
+5. 모호해 추측이 필요하거나 '[입력 필요]' 슬롯이 남았으면 구현하지 말고 무엇이 막혔는지 한국어로 보고하고 멈춘다.
+6. 끝나면 변경 요약 + 수용 기준 충족 여부 + (해당되면) 일지에 남길 결정 1줄을 보고한다. push 는 하지 마라.
+지금 $kind 를 구현하라.
+"@
 }
 
-# 격리 git 워크트리를 새로 만들어(메인 체크아웃 무오염) 그 안의 새 탭에서 엔진이 구현.
+# ── Orca IDE 통합 ── (새 탭 / 격리 워크트리에서 codex CLI 를 띄워 구현)
+function Resolve-Orca {
+    if ($env:TERM_PROGRAM -ne 'Orca') { Fail "Orca IDE 터미널에서만 동작합니다(현재 TERM_PROGRAM=$($env:TERM_PROGRAM))." }
+    # orca.exe(네이티브 argv)를 쓴다 — orca.cmd 는 cmd.exe 가 인자의 따옴표·비ASCII 를
+    # 재파싱해 --command 에 담은 복합 셸 문자열이 깨진다(터미널 생성 실패).
+    $gc = Get-Command 'orca.exe' -ErrorAction SilentlyContinue
+    if (-not $gc) { $gc = Get-Command 'orca' -ErrorAction SilentlyContinue }
+    if ($gc -and $gc.Source -like '*.exe') { return $gc.Source }
+    foreach ($cand in @(
+            (Join-Path $env:LOCALAPPDATA 'Programs\Orca\resources\bin\orca.exe'),
+            (Join-Path $env:LOCALAPPDATA 'Programs\orca\resources\bin\orca.exe'),
+            (Join-Path ${env:ProgramFiles} 'Orca\resources\bin\orca.exe'))) {
+        if ($cand -and (Test-Path $cand)) { return $cand }
+    }
+    if ($gc) { return $gc.Source }
+    Fail "orca.exe 를 못 찾음 — Orca 설치 경로 확인."
+}
+
+# 한국어 구현 프롬프트를 UTF-8 파일(.orca/impl-prompt.md)로 떨군다. codex 에는 이 파일을
+# '읽으라'는 ASCII 한 줄만 argv 로 주어, 한글이 argv(npm codex.cmd → cmd.exe 의 ANSI 코드
+# 페이지 재인코딩)에서 '?' 로 깨지는 것을 원천 차단한다. 반환: 프롬프트 파일 경로.
+function Write-PromptFile([string]$rootPath, [string]$branchName) {
+    $orcaDir = Join-Path $rootPath '.orca'
+    New-Item -ItemType Directory -Force -Path $orcaDir | Out-Null
+    $pf = Join-Path $orcaDir 'impl-prompt.md'
+    [IO.File]::WriteAllText($pf, (Build-Prompt $branchName), (New-Object System.Text.UTF8Encoding($false)))
+    # git status 오염 방지 — 워크트리별 exclude 에 /.orca/ 추가(검수 diff 를 깨끗하게).
+    try {
+        $ex = (& git -C $rootPath rev-parse --git-path info/exclude 2>$null)
+        if ($ex) {
+            $exFull = if ([IO.Path]::IsPathRooted($ex)) { $ex } else { Join-Path $rootPath $ex }
+            New-Item -ItemType Directory -Force -Path (Split-Path $exFull) | Out-Null
+            $has = (Test-Path $exFull) -and ((Get-Content -Raw $exFull) -match '(?m)^/\.orca/\s*$')
+            if (-not $has) { Add-Content -Path $exFull -Value "/.orca/" -Encoding UTF8 }
+        }
+    } catch {}
+    return $pf
+}
+
+# 새 탭에서 엔진 대화형 CLI(TUI)를 자동 실행하는 ASCII 시작 명령을 만든다.
+# - WindowsApps pwsh 별칭 제거(샌드박스 오류 1920 회피 — 자식 codex 가 이 PATH 상속).
+# - chcp 65001 로 UTF-8 코드페이지 고정.
+# - codex: -s workspace-write -a never 로 승인 없이 워크트리 안에서만 쓰며 자동 진행.
+function New-EngineLaunch {
+    $instr = "Read the file .orca/impl-prompt.md in this repository and follow every instruction in it exactly. It is your complete task spec, written in Korean. Reply in Korean. Do not push."
+    $strip = "`$env:PATH=(`$env:PATH -split ';' | Where-Object { `$_ -and (`$_ -notlike '*\Microsoft\WindowsApps*') }) -join ';'"
+    $pre = "$strip; chcp 65001 > `$null 2>&1 | Out-Null"
+    # $instr 는 ASCII·작은따옴표 없음 → 작은따옴표로 감싼다. 큰따옴표로 감싸면 이 $launch 가
+    # orca.exe 의 --command 인자로 네이티브 argv 전달될 때 임베드 큰따옴표가 인자 경계를 깨서
+    # orca 가 명령을 오파싱한다(Unknown command). 작은따옴표는 native argv 에서 안전.
+    if ($Engine -eq 'claude') { return "$pre; claude --permission-mode acceptEdits '$instr'" }
+    return "$pre; codex --sandbox workspace-write --ask-for-approval never '$instr'"
+}
+
+# 격리 git 워크트리를 새로 만들어(메인 체크아웃 무오염) 그 안의 새 탭에서 codex CLI 가 구현.
 # 완료 대기·검수·알림은 감독(Claude)이 ORCA-HANDOFF 값으로 이어받는다.
 if ($Worktree) {
     $orca = Resolve-Orca
     $wtName = [IO.Path]::GetFileNameWithoutExtension($ticketRel)
-    # 워크트리 탭에서 이 스크립트를 인라인 모드(-NoBranch, 워크트리가 이미 자기 브랜치)로 직접 실행.
-    $inner = "& `"$PSCommandPath`" -Ticket `"$ticketRel`" -Engine $Engine -NoBranch"
+    $launch = New-EngineLaunch
     if ($DryRun) {
-        Info "[dry-run] 워크트리 생성 + 새 터미널:"
+        Info "[dry-run] 워크트리 생성 + 새 탭에서 $Engine CLI:"
         Write-Host "  `"$orca`" worktree create --repo path:$repo --name $wtName --base-branch $Base --no-parent --json"
-        Write-Host "  `"$orca`" terminal create --worktree id:<신규wtId> --title impl:$wtName --command `"$inner`" --focus --json"
+        Write-Host "  # .orca/impl-prompt.md 에 한국어 구현 프롬프트 기록(exclude 처리)"
+        Write-Host "  `"$orca`" terminal create --worktree id:<신규wtId> --title impl:$wtName --command `"$launch`" --focus --json"
         exit 0
     }
     Info "격리 워크트리 생성: $wtName (base: $Base)"
@@ -134,8 +192,10 @@ if ($Worktree) {
     try { $j = $wtOut | ConvertFrom-Json; $wtId = $j.result.worktree.id; $wtPath = $j.result.worktree.path; $wtBranch = $j.result.worktree.branch } catch {}
     if (-not $wtId) { Write-Host $wtOut; Fail "워크트리 생성 실패(이미 있으면 'orca worktree rm --worktree name:$wtName --force')." }
     Info "워크트리 경로: $wtPath / 브랜치: $wtBranch"
-    Info "새 Orca 터미널에서 $Engine 구현 시작..."
-    $tOut = & $orca terminal create --worktree "id:$wtId" --title "impl:$wtName" --command $inner --focus --json 2>&1 | Out-String
+    $pf = Write-PromptFile $wtPath $wtBranch
+    Info "구현 프롬프트 기록: $($pf.Substring($wtPath.Length).TrimStart('\','/'))"
+    Info "새 Orca 탭에서 $Engine CLI 시작..."
+    $tOut = & $orca terminal create --worktree "id:$wtId" --title "impl:$wtName" --command $launch --focus --json 2>&1 | Out-String
     $handle = $null
     try { $handle = ($tOut | ConvertFrom-Json).result.terminal.handle } catch {}
     if (-not $handle) { Write-Host $tOut; Fail "터미널 생성 실패(워크트리는 남음: $wtPath)." }
@@ -150,31 +210,38 @@ if ($Worktree) {
     exit 0
 }
 
-# 인라인 대신 (현재 체크아웃 공유) 새 터미널 탭을 띄워 그 안에서 구현시킨다.
-# 새 탭 cwd = 워크트리 루트. 새 탭이 스스로 브랜치 체크아웃 + 엔진 실행을 하도록
-# implement.ps1 을 인라인 모드(-NewTerminal 없이)로 재귀 호출한다.
+# 격리 없이(현재 체크아웃 공유) 새 탭에서 codex CLI 로 구현. 여기서 브랜치를 체크아웃하고
+# (메인 창에도 반영됨) 그 탭에 codex 를 띄운다.
 if ($NewTerminal) {
     $orca = Resolve-Orca
-    $sideArg = if ($Side) { $Side } elseif ($ticketRel -match '/(be|fe)/') { $Matches[1] } else { '' }
-    # 새 탭 셸은 이미 PowerShell 이므로 powershell.exe 를 중첩하지 않고 & 로 이 스크립트를
-    # 인라인 모드(-NewTerminal 없이)로 직접 실행한다. 절대경로+큰따옴표로 공백에 안전.
-    $inner = "& `"$PSCommandPath`" -Ticket `"$ticketRel`" -Engine $Engine"
-    if ($sideArg) { $inner += " -Side $sideArg" }
-    if ($Base) { $inner += " -Base $Base" }
+    if (-not $NoBranch) {
+        $exists = (& git -C $repo branch --list $branch)
+        if ($exists) { Info "'$branch' 존재 → 체크아웃"; & git -C $repo checkout $branch | Out-Null }
+        else {
+            Info "base '$Base' 에서 '$branch' 생성"
+            & git -C $repo fetch origin $Base --quiet 2>$null
+            & git -C $repo checkout -b $branch $Base | Out-Null
+            if ($LASTEXITCODE -ne 0) { Info "base '$Base' 없음 → 현재 HEAD 에서 분기"; & git -C $repo checkout -b $branch | Out-Null }
+        }
+    }
+    $curBranch = (& git -C $repo rev-parse --abbrev-ref HEAD).Trim()
+    $launch = New-EngineLaunch
     $title = 'impl:' + [IO.Path]::GetFileNameWithoutExtension($ticketRel)
     if ($DryRun) {
-        Info "[dry-run] 새 Orca 터미널 생성 명령:"
-        Write-Host "  `"$orca`" terminal create --worktree active --title `"$title`" --command `"$inner`" --focus --json"
+        Info "[dry-run] 현재 체크아웃 공유 새 탭에서 $Engine CLI (브랜치: $curBranch):"
+        Write-Host "  `"$orca`" terminal create --worktree active --title `"$title`" --command `"$launch`" --focus --json"
         exit 0
     }
-    Info "새 Orca 터미널에서 구현 시작 → $title (엔진: $Engine)"
-    $out = & $orca terminal create --worktree active --title $title --command $inner --focus --json 2>&1 | Out-String
+    $pf = Write-PromptFile $repo $curBranch
+    Info "구현 프롬프트 기록: $($pf.Substring($repo.Length).TrimStart('\','/'))"
+    Info "새 Orca 탭에서 $Engine CLI 시작 → $title (브랜치: $curBranch)"
+    $out = & $orca terminal create --worktree active --title $title --command $launch --focus --json 2>&1 | Out-String
     $handle = $null
     try { $handle = ($out | ConvertFrom-Json).result.terminal.handle } catch {}
     if ($handle) {
         Info "터미널 핸들: $handle"
-        Info "진행 읽기:  `"$orca`" terminal read --terminal $handle --json"
         Info "완료 대기:  `"$orca`" terminal wait --terminal $handle --for tui-idle --json"
+        Info "검수:      git -C `"$repo`" diff $curBranch"
     }
     else { Write-Host $out }
     exit 0
@@ -201,19 +268,7 @@ if (-not $NoBranch) {
 $curBranch = (& git -C $repo rev-parse --abbrev-ref HEAD).Trim()
 Info "작업 브랜치: $curBranch"
 
-$prompt = @"
-너는 이 리포에서 $kind 1개를 구현하는 에이전트다. 지금 브랜치는 '$curBranch'.
-읽을 ${kind}: $ticketRel  (도메인 폴더면 그 안의 README·플로우/요소 또는 데이터/기능 문서를 전부 읽어라)
-규약 SoT: docs/arch/ARCHITECTURE.md (먼저 읽어라).
-규칙(엄수):
-1. $kind 를 끝까지 읽고 「구현목표/수용기준」(도메인 폴더면 데이터.md·기능_*.md 또는 플로우·요소)대로만 구현한다.
-2. 「경계 — 하지 말 것」을 절대 어기지 않는다: 지정 범위 밖 수정·재설계·리네이밍·겸사겸사 리팩터·새 의존 추가 금지. 의존 도메인은 읽기만.
-3. 코드 영문 / 주석·문서 한국어. 명명·직렬화는 ARCHITECTURE 컨벤션을 따른다.
-4. 「수용 기준」을 모두 충족한다(엣지 케이스 행이 있으면 각 행도).
-5. 모호해 추측이 필요하거나 '[입력 필요]' 슬롯이 남았으면 구현하지 말고 무엇이 막혔는지 한국어로 보고하고 멈춘다.
-6. 끝나면 변경 요약 + 수용 기준 충족 여부 + (해당되면) 일지에 남길 결정 1줄을 보고한다. push 는 하지 마라.
-지금 $kind 를 구현하라.
-"@
+$prompt = Build-Prompt $curBranch
 
 function Resolve-Bin([string[]]$names) {
     foreach ($n in $names) { $c = Get-Command $n -ErrorAction SilentlyContinue; if ($c) { return $c.Source } }

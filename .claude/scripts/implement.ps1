@@ -162,6 +162,11 @@ function Write-PromptFile([string]$rootPath, [string]$branchName) {
 # - WindowsApps pwsh 별칭 제거(샌드박스 오류 1920 회피 — 자식 codex 가 이 PATH 상속).
 # - chcp 65001 로 UTF-8 코드페이지 고정.
 # - codex: -s workspace-write -a never 로 승인 없이 워크트리 안에서만 쓰며 자동 진행.
+# - codex: -c windows.sandbox=unelevated 로 이 자동 실행에 한해 비관리자 샌드박스 강제.
+#   전역 config 의 elevated 샌드박스는 명령마다 승격 프로세스를 새 콘솔 창으로 띄워(승격
+#   프로세스는 이 TUI 의 콘솔을 상속 못 함) 쓸데없는 PS 창이 여러 개 뜬다. 격리 워크트리
+#   안 자동 구현은 unelevated 로 돌려 codex TUI 창 하나만 남긴다(값은 bare — 큰따옴표를
+#   넣으면 orca --command native argv 경계가 깨지므로 codex 가 bare enum 을 받게 둔다).
 function New-EngineLaunch {
     $instr = "Read the file .orca/impl-prompt.md in this repository and follow every instruction in it exactly. It is your complete task spec, written in Korean. Reply in Korean. Do not push."
     $strip = "`$env:PATH=(`$env:PATH -split ';' | Where-Object { `$_ -and (`$_ -notlike '*\Microsoft\WindowsApps*') }) -join ';'"
@@ -170,7 +175,7 @@ function New-EngineLaunch {
     # orca.exe 의 --command 인자로 네이티브 argv 전달될 때 임베드 큰따옴표가 인자 경계를 깨서
     # orca 가 명령을 오파싱한다(Unknown command). 작은따옴표는 native argv 에서 안전.
     if ($Engine -eq 'claude') { return "$pre; claude --permission-mode acceptEdits '$instr'" }
-    return "$pre; codex --sandbox workspace-write --ask-for-approval never '$instr'"
+    return "$pre; codex -c windows.sandbox=unelevated --sandbox workspace-write --ask-for-approval never '$instr'"
 }
 
 # 격리 git 워크트리를 새로 만들어(메인 체크아웃 무오염) 그 안의 새 탭에서 codex CLI 가 구현.
@@ -290,7 +295,9 @@ if ($Engine -eq 'codex') {
     if (-not $bin) { Fail "codex 실행 파일을 못 찾음. PATH 확인 또는 -Engine claude." }
     Info "codex 실행 (workspace-write)..."
     # codex exec: PROMPT 자리에 '-' → 지시문을 stdin 에서 읽는다(--help 참조).
-    $prompt | & $bin 'exec' '--cd' $repo '--sandbox' 'workspace-write' '-'
+    # -c windows.sandbox=unelevated: 전역 elevated 샌드박스가 명령마다 승격 콘솔 창을 띄우는 것을
+    # 이 자동 구현 실행에 한해 막는다(New-EngineLaunch 주석 참조).
+    $prompt | & $bin 'exec' '-c' 'windows.sandbox=unelevated' '--cd' $repo '--sandbox' 'workspace-write' '-'
 }
 else {
     $bin = Resolve-Bin @('claude', 'claude.cmd', 'claude.exe')

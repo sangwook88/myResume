@@ -7,10 +7,9 @@
 // 포인트의 기술 스택 = 그 포인트가 속한 프로젝트의 techStack(포인트엔 스택 데이터가 없다).
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import ProfileHeader from '@/components/ProfileHeader';
 import Reveal from '@/components/Reveal';
 import { askChat } from '@/lib/askChat';
-import type { PointSummary, Profile } from '@/lib/types';
+import type { PointSummary } from '@/lib/types';
 import { displayText } from '@/lib/displayText';
 
 export interface LandingProject {
@@ -27,11 +26,9 @@ const CHAT_QUESTIONS = [
 ];
 
 export default function LandingExplorer({
-  profile,
   recommended,
   projects,
 }: {
-  profile: Profile;
   recommended: PointSummary[];
   projects: LandingProject[];
 }) {
@@ -77,12 +74,6 @@ export default function LandingExplorer({
     <main className="point-wrap">
       {/* 좌: 목록 */}
       <div className="landing-main">
-        <ProfileHeader
-          profile={profile}
-          projectCount={projects.length}
-          caseCount={recommended.length}
-        />
-
         {active && (
           <p className="filter-note">
             선택한 기술 스택: {Array.from(selected).map(displayText).join(', ')} / 포인트 {filteredPoints.length} / 프로젝트 {filteredProjects.length}

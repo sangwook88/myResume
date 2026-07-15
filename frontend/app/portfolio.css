@@ -439,6 +439,7 @@ a { color: var(--accent); }
 .landing-proof dt { color: var(--subtle); font-size: 11px; }
 .landing-proof dd { margin: 0; color: var(--slate); font-family: var(--font-mono); font-size: 18px; font-weight: 650; }
 .landing-section-title { margin: 76px 0 20px; font-size: 27px; letter-spacing: -.035em; }
+.landing-main > .landing-section-title:first-child { margin-top: 0; }
 
 .landing-main .card {
   padding: 20px 22px;

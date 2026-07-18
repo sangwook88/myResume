@@ -22,7 +22,7 @@ import yaml
 
 from app.point import service as point_service
 from app.project import repository
-from app.project.models import ProjectIndex, ProjectSummary
+from app.project.models import LandingProject, ProjectIndex, ProjectSummary
 
 MAX_DIAGRAM_SVG_BYTES = 2 * 1024 * 1024
 
@@ -56,6 +56,25 @@ def list_projects() -> list[ProjectSummary]:
             with_points.append(summary)
         else:
             without_points.append(summary)
+    return with_points + without_points
+
+
+def list_landing_projects() -> list[LandingProject]:
+    """랜딩 카드용 read model 전량. published 포인트 0개는 후순위."""
+    raws = list(repository.iter_raw())
+    published_slugs = point_service.list_published_project_slugs()
+
+    projects = [
+        LandingProject(
+            slug=raw["slug"],
+            name=raw["name"],
+            summary=raw["summary"],
+            tech_stack=raw.get("tech_stack") or [],
+        )
+        for raw in raws
+    ]
+    with_points = [project for project in projects if project.slug in published_slugs]
+    without_points = [project for project in projects if project.slug not in published_slugs]
     return with_points + without_points
 
 

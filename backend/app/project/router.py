@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from app.admin import require_admin
 from app.project import repository, service
-from app.project.models import ProjectEdit, ProjectIndex, ProjectSummary
+from app.project.models import LandingProject, ProjectEdit, ProjectIndex, ProjectSummary
 
 router = APIRouter(prefix="/api/projects", tags=["project"])
 
@@ -23,6 +23,12 @@ router = APIRouter(prefix="/api/projects", tags=["project"])
 def get_projects() -> list[ProjectSummary]:
     """카탈로그: 모든 프로젝트 요약(published 포인트 0개는 후순위). 없으면 []."""
     return service.list_projects()
+
+
+@router.get("/landing", response_model=list[LandingProject])
+def get_landing_projects() -> list[LandingProject]:
+    """랜딩 카드용 카탈로그를 한 응답으로 반환한다."""
+    return service.list_landing_projects()
 
 
 # 관리자 조회(draft 포함) — 반드시 `/{slug}` 보다 먼저 선언("admin" catch 방지).

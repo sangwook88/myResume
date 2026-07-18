@@ -48,6 +48,15 @@ class ProjectSummary(CamelModel):
     summary: str
 
 
+class LandingProject(CamelModel):
+    """랜딩 카드에 필요한 프로젝트 카탈로그 read model."""
+
+    slug: str
+    name: str
+    summary: str
+    tech_stack: list[str]
+
+
 class ProjectEdit(CamelModel):
     """관리자 편집 입력. 서식 손실을 막기 위해 전체 index.md 원문을 받는다."""
 

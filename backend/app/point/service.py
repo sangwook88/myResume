@@ -21,6 +21,7 @@ from app.point.models import (
     Evidence,
     Option,
     Point,
+    PointPage,
     PointSummary,
     Sections,
 )
@@ -61,9 +62,14 @@ def _published(raws: list[dict]) -> list[dict]:
     return [r for r in raws if r.get("status") == "published"]
 
 
+def _list_published_raw() -> list[dict]:
+    """전체 포인트를 한 번 스캔해 published raw만 수집한다."""
+    return _published(list(repository.iter_raw()))
+
+
 def list_recommended() -> list[PointSummary]:
     """추천 포인트 상위 3: `featured` 태그 우선 → 동점 `updated` 최신순."""
-    pub = _published(list(repository.iter_raw()))
+    pub = _list_published_raw()
     # 안정 정렬: 먼저 updated 최신순, 그 위에 featured 우선(같은 그룹은 최신순 유지).
     pub.sort(key=lambda r: r.get("updated") or "", reverse=True)
     pub.sort(key=lambda r: 0 if _FEATURED in (r.get("tags") or []) else 1)
@@ -72,9 +78,14 @@ def list_recommended() -> list[PointSummary]:
 
 def list_by_project(project: str) -> list[PointSummary]:
     """해당 project의 published 요약 목록(없으면 빈 리스트). 정렬은 구현 기본(updated 최신순)."""
-    pub = [r for r in _published(list(repository.iter_raw())) if r.get("project") == project]
+    pub = [r for r in _list_published_raw() if r.get("project") == project]
     pub.sort(key=lambda r: r.get("updated") or "", reverse=True)
     return [_to_summary(r) for r in pub]
+
+
+def list_published_project_slugs() -> set[str]:
+    """published 포인트가 하나 이상인 프로젝트 slug 집합."""
+    return {raw["project"] for raw in _list_published_raw()}
 
 
 def _sections_from_raw(raw: dict) -> Sections:
@@ -115,6 +126,22 @@ def get_published(point_id: str) -> Point | None:
     if raw is None or raw.get("status") != "published":
         return None
     return _to_point(raw)
+
+
+def get_published_page(point_id: str) -> PointPage | None:
+    """published 단건과 같은 프로젝트 형제 요약을 한 번의 전체 스캔으로 조립한다."""
+    pub = _list_published_raw()
+    target = next((raw for raw in pub if raw.get("id") == point_id), None)
+    if target is None:
+        return None
+
+    siblings = [
+        raw
+        for raw in pub
+        if raw.get("project") == target.get("project") and raw.get("id") != point_id
+    ]
+    siblings.sort(key=lambda raw: raw.get("updated") or "", reverse=True)
+    return PointPage(point=_to_point(target), siblings=[_to_summary(raw) for raw in siblings])
 
 
 # ── 관리자 조회 (draft 포함 — 라우터에서 require_admin 게이트) ──

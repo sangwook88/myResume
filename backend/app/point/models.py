@@ -65,6 +65,13 @@ class Point(PointSummary):
     evidence: list[Evidence]
 
 
+class PointPage(CamelModel):
+    """포인트 상세 화면용 공개 read model: 본문과 같은 프로젝트의 형제 요약."""
+
+    point: Point
+    siblings: list[PointSummary]
+
+
 class PointEdit(CamelModel):
     """관리자 편집 입력. 서식 손실을 막기 위해 전체 마크다운 원문을 받는다."""
 

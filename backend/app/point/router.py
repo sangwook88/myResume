@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from app.admin import require_admin
 from app.point import repository, service
-from app.point.models import AdminPointSummary, Point, PointEdit, PointSummary
+from app.point.models import AdminPointSummary, Point, PointEdit, PointPage, PointSummary
 
 router = APIRouter(prefix="/api/points", tags=["point"])
 
@@ -142,6 +142,15 @@ def get_point_image(project: str, filename: str):
     if path is None:
         raise HTTPException(status_code=404)
     return FileResponse(str(path))
+
+
+@router.get("/{point_id}/page", response_model=PointPage, response_model_exclude_none=True)
+def get_point_page(point_id: str):
+    """published 단건과 같은 프로젝트의 형제 요약. 없거나 draft면 랜딩으로 리다이렉트."""
+    page = service.get_published_page(point_id)
+    if page is None:
+        return RedirectResponse(url="/", status_code=302)
+    return page
 
 
 @router.get("/{point_id}", response_model=Point, response_model_exclude_none=True)

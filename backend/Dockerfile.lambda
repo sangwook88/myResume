@@ -1,0 +1,36 @@
+# BE 를 AWS Lambda 컨테이너 이미지로 굽는다(서버리스 배포 경로).
+#
+# 셀프호스팅용 Dockerfile 과 다른 점 두 가지:
+#  1) wiki 를 이미지에 굽는다 — Lambda 엔 볼륨 마운트가 없다. 콘텐츠가 바뀌면 재배포한다.
+#  2) Lambda Web Adapter(LWA) 확장을 넣는다 — Python 런타임은 응답 스트리밍을 기본
+#     지원하지 않는다. LWA 가 일반 웹서버(uvicorn)를 Lambda 앞에 붙여주고,
+#     invoke mode response_stream 으로 챗봇 SSE 를 그대로 흘려보낸다.
+#
+# 빌드 컨텍스트는 **레포 루트**다(backend/ 와 wiki/ 를 함께 담아야 하므로):
+#   docker build -f backend/Dockerfile.lambda -t <tag> .
+FROM python:3.12-slim
+
+# Lambda Web Adapter — /opt/extensions 에 두면 Lambda 가 확장으로 로드한다.
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    WIKI_ROOT=/app/wiki \
+    # LWA 설정: uvicorn 이 듣는 포트 / 스트리밍 모드 / 준비 확인 경로.
+    # 루트(/)는 라우트가 없어 404 이므로 실제 200 을 주는 경로로 확인한다.
+    PORT=8000 \
+    AWS_LWA_INVOKE_MODE=response_stream \
+    AWS_LWA_READINESS_CHECK_PATH=/api/projects \
+    AWS_LWA_ASYNC_INIT=true
+
+WORKDIR /app
+
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/app ./app
+# 콘텐츠를 이미지에 포함(볼륨 없음). 포폴을 고치면 재배포가 곧 반영이다.
+COPY wiki ./wiki
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

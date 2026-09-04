@@ -1,0 +1,76 @@
+name: Deploy BE to Lambda
+
+# BE(FastAPI)를 컨테이너 이미지로 구워 ECR 에 올리고 Lambda 를 갱신한다.
+# 로컬 Docker 가 필요 없다 — 빌드는 여기서 돈다.
+#
+# 콘텐츠(wiki)는 이미지에 구워지므로, 포폴 마크다운을 고쳐도 이 워크플로가 돌아야 반영된다.
+#
+# 필요한 설정 (Settings → Secrets and variables → Actions)
+#   Secrets   : AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#   Variables : AWS_REGION(예: ap-northeast-2), ECR_REPOSITORY, LAMBDA_FUNCTION_NAME
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "wiki/**"
+      - ".github/workflows/deploy-lambda.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-lambda
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 이미지 빌드 → ECR → Lambda 갱신
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS 자격 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: ECR 로그인
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 이미지 빌드·푸시
+        id: build
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPO: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/$REPO:${GITHUB_SHA::7}"
+          # 빌드 컨텍스트는 레포 루트 — backend/ 와 wiki/ 를 함께 담아야 한다.
+          # Lambda 는 linux/amd64 이미지를 요구한다(함수 아키텍처와 일치해야 함).
+          docker build --platform linux/amd64 -f backend/Dockerfile.lambda -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Lambda 함수 코드 갱신
+        env:
+          FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code --function-name "$FN" --image-uri "$IMAGE" >/dev/null
+          aws lambda wait function-updated --function-name "$FN"
+          echo "배포 완료: $IMAGE"
+
+      - name: 헬스체크 (Function URL)
+        env:
+          FN: ${{ vars.LAMBDA_FUNCTION_NAME }}
+        run: |
+          set -euo pipefail
+          URL=$(aws lambda get-function-url-config --function-name "$FN" --query FunctionUrl --output text 2>/dev/null || echo "")
+          if [ -z "$URL" ]; then echo "Function URL 미설정 — 헬스체크 건너뜀"; exit 0; fi
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "${URL%/}/api/projects")
+          echo "GET ${URL%/}/api/projects -> HTTP $CODE"
+          [ "$CODE" = "200" ] || { echo "헬스체크 실패"; exit 1; }

@@ -4,9 +4,9 @@ name: Deploy
 # 시크릿은 전부 GitHub Secrets/Variables 에서 주입 → 호스트엔 배포 시점에만 deploy/.env 로 써진다.
 # (수동 실행도 가능: Actions 탭 → Deploy → Run workflow)
 
+# 셀프호스팅(SSH + docker compose) 경로. 서버리스로 전환한 뒤로는 기본 비활성이며
+# 필요할 때만 Actions 탭에서 수동 실행한다(main push 마다 도는 것을 막는다).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # 동시에 두 배포가 겹치지 않게 직렬화(진행 중이면 새 배포는 대기).

@@ -40,5 +40,5 @@ updated: 2026-07-03
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | [Docs] v1 스코프 재확정: 수동 저작+근거 강제+load-all 챗봇 | https://github.com/sangwook88/myResume/commit/2e1024f |
-| commit | [Docs] arch 확정 — 저장소=Redis+git 마크다운, 관계형 DB 없음 | https://github.com/sangwook88/myResume/commit/c7f0989 |
+| commit | [Docs] v1 스코프 재확정: 수동 저작+근거 강제+load-all 챗봇 | https://github.com/sangwook88/myResume/commit/1ef7d47 |
+| commit | [Docs] arch 확정 — 저장소=Redis+git 마크다운, 관계형 DB 없음 | https://github.com/sangwook88/myResume/commit/7c4b5a4 |

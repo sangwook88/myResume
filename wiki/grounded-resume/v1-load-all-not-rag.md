@@ -40,6 +40,6 @@ v1 챗봇이 임베딩·인덱스 없이 동작한다. 근거 누락 없이 답�
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | [Docs] 검색/서빙 레이어(RAG 4레이어 매핑·Stage 사다리, v1=Stage1) | https://github.com/sangwook88/myResume/commit/a3e354b |
-| commit | [Docs] v1 스코프 재확정 — RAG를 v3로 제외 | https://github.com/sangwook88/myResume/commit/2e1024f |
-| commit | [Feat] be/chat — load-all 코퍼스 + 프롬프트 캐싱 구현 | https://github.com/sangwook88/myResume/commit/4a2e075 |
+| commit | [Docs] 검색/서빙 레이어(RAG 4레이어 매핑·Stage 사다리, v1=Stage1) | https://github.com/sangwook88/myResume/commit/d73be8b |
+| commit | [Docs] v1 스코프 재확정 — RAG를 v3로 제외 | https://github.com/sangwook88/myResume/commit/1ef7d47 |
+| commit | [Feat] be/chat — load-all 코퍼스 + 프롬프트 캐싱 구현 | https://github.com/sangwook88/myResume/commit/ca501b1 |

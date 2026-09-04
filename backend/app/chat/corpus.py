@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from app.chat.models import Citation
 from app.point import service as point_service
 from app.point.models import Point
+from app.project import profile as project_profile
 from app.project import service as project_service
 from app.project.models import ProjectIndex
 
@@ -52,6 +53,37 @@ class CorpusBundle:
     def has_content(self) -> bool:
         """답변 근거가 될 published 포인트가 하나라도 있는가."""
         return self.point_count > 0
+
+
+def _render_profile() -> str | None:
+    """사이트 프로필(wiki/profile.md)을 코퍼스 머리 블록으로 렌더. 비어 있으면 None.
+
+    코퍼스는 프로젝트·포인트만 담아 인물 질문("이 사람 누구예요?", "연락처는?")에
+    근거가 없었다. 프로필은 be/project 소유 콘텐츠이므로 기존 참조 엣지
+    (be/chat -> be/project) 안에서 읽는다. 값이 하나도 없으면 블록을 만들지 않아
+    프로필 미설정 포크의 캐시 프리픽스는 종전과 바이트 동일하게 유지된다.
+    """
+    prof = project_profile.load_profile()
+    fields = (
+        ("이름", prof.get("name")),
+        ("한줄소개", prof.get("headline")),
+        ("GitHub", prof.get("github")),
+        ("전화", prof.get("phone")),
+        ("이메일", prof.get("email")),
+    )
+    lines = [f"- {label}: {value.strip()}" for label, value in fields if (value or "").strip()]
+    intro = (prof.get("intro") or "").strip()
+    if not lines and not intro:
+        return None
+
+    block = ["## 포트폴리오 주인(프로필)"]
+    block.extend(lines)
+    if intro:
+        block.append("- 자기소개:")
+        block.append(intro)
+    # 프로필엔 Evidence 토큰이 없다 -> 인용 대상이 아님을 모델에 명시(환각 인용 방지).
+    block.append("(위 프로필은 사이트 소유자가 직접 기재한 정보다. 인용 토큰이 없으므로 근거 링크 없이 답한다.)")
+    return "\n".join(block)
 
 
 def _render_cover(idx: ProjectIndex) -> str:
@@ -139,6 +171,9 @@ def build_corpus(context_point_id: str | None = None) -> CorpusBundle:
     point_of_token: dict[str, dict] = {}
     counter = [0]
     blocks: list[str] = ["# 전체 포트폴리오 코퍼스"]
+    profile_block = _render_profile()
+    if profile_block:
+        blocks.append(profile_block)
     point_count = 0
 
     for proj in project_service.list_projects():
@@ -249,6 +284,9 @@ def build_corpus_rag(
     point_of_token: dict[str, dict] = {}
     counter = [0]
     blocks: list[str] = ["# 질문과 관련 있는 포인트(시맨틱 top-K)"]
+    profile_block = _render_profile()
+    if profile_block:
+        blocks.append(profile_block)
     covered_projects: set[str] = set()
     point_count = 0
 

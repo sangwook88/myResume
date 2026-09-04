@@ -60,6 +60,10 @@ def _git_diff(args: list[str]) -> str | None:
             ["git", "-C", str(_GIT_DIR), *args],
             capture_output=True,
             text=True,
+            # git 출력은 UTF-8. 지정하지 않으면 Windows 로캘 코덱(cp949)으로 디코딩해
+            # 한글 커밋 diff 에서 UnicodeDecodeError 로 조용히 추출이 실패한다.
+            encoding="utf-8",
+            errors="replace",
             check=True,
         )
     except (OSError, subprocess.CalledProcessError):

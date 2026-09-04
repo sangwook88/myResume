@@ -8,8 +8,9 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Reveal from '@/components/Reveal';
+import ProfileHeader from '@/components/ProfileHeader';
 import { askChat } from '@/lib/askChat';
-import type { PointSummary } from '@/lib/types';
+import type { PointSummary, Profile } from '@/lib/types';
 import { displayText } from '@/lib/displayText';
 
 export interface LandingProject {
@@ -28,9 +29,11 @@ const CHAT_QUESTIONS = [
 export default function LandingExplorer({
   recommended,
   projects,
+  profile,
 }: {
   recommended: PointSummary[];
   projects: LandingProject[];
+  profile: Profile;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [input, setInput] = useState('');
@@ -74,6 +77,12 @@ export default function LandingExplorer({
     <main className="point-wrap">
       {/* 좌: 목록 */}
       <div className="landing-main">
+        <ProfileHeader
+          profile={profile}
+          projectCount={projects.length}
+          caseCount={recommended.length}
+        />
+
         {active && (
           <p className="filter-note">
             선택한 기술 스택: {Array.from(selected).map(displayText).join(', ')} / 포인트 {filteredPoints.length} / 프로젝트 {filteredProjects.length}

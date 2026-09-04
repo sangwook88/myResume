@@ -438,6 +438,67 @@ a { color: var(--accent); }
 }
 .landing-proof dt { color: var(--subtle); font-size: 11px; }
 .landing-proof dd { margin: 0; color: var(--slate); font-family: var(--font-mono); font-size: 18px; font-weight: 650; }
+/* Profile header (fe/0007) - landing hero replacement. Tokens only, so dark theme follows. */
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 36px 0 32px;
+  border-bottom: 1px solid var(--line);
+}
+.profile-header-main { display: flex; align-items: flex-start; gap: 28px; }
+.profile-photo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 104px;
+  height: 104px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 38px;
+  font-weight: 650;
+  letter-spacing: -.03em;
+}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-copy { min-width: 0; }
+.profile-copy h1 {
+  margin: 0;
+  font-size: clamp(34px, 4.4vw, 50px);
+  font-weight: 610;
+  line-height: 1.04;
+  letter-spacing: -.045em;
+}
+.profile-headline { max-width: 46ch; margin: 12px 0 0; color: var(--muted); font-size: 18px; line-height: 1.5; }
+.profile-contacts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.profile-contacts a {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--slate-2);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.profile-contacts a:hover { border-color: var(--accent); color: var(--accent); }
+.profile-intro { max-width: 62ch; margin-top: 20px; color: var(--muted); font-size: 15px; line-height: 1.65; }
+.profile-intro > :first-child { margin-top: 0; }
+.profile-intro > :last-child { margin-bottom: 0; }
+.profile-stats { display: flex; flex-wrap: wrap; gap: 32px; margin: 0; }
+.profile-stats > div { display: flex; flex-direction: column; gap: 4px; }
+.profile-stats dt { color: var(--subtle); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.profile-stats dd { margin: 0; color: var(--slate); font-family: var(--font-mono); font-size: 17px; font-weight: 650; }
+
+@media (max-width: 720px) {
+  .profile-header { padding-top: 24px; gap: 22px; }
+  .profile-header-main { flex-direction: column; gap: 18px; }
+  .profile-photo { width: 80px; height: 80px; font-size: 30px; }
+  .profile-stats { gap: 22px; }
+}
+
 .landing-section-title { margin: 76px 0 20px; font-size: 27px; letter-spacing: -.035em; }
 .landing-main > .landing-section-title:first-child { margin-top: 0; }
 

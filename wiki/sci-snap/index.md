@@ -1,6 +1,6 @@
 ---
 name: SCI-Snap — 사진으로 과학을 묻는 챗봇
-summary: 사진을 찍으면 사물을 인식하고 거기서 과학 현상(예: 흰색 탁한 물 → 백수효과)을 뽑아, 초등 교과서를 근거로 어린이 눈높이에 맞춰 설명하는 앱. STDev Science Hackathon 4인 팀 프로젝트.
+summary: "사진을 찍으면 사물을 인식하고 거기서 과학 현상(예를 들어 흰색 탁한 물 → 백수효과)을 뽑아, 초등 교과서를 근거로 어린이 눈높이에 맞춰 설명하는 앱. STDev Science Hackathon 4인 팀 프로젝트."
 role: 챗봇 백엔드(AWS Lambda) · 앱 프론트엔드(Flutter)
 period: 2026.04.12 ~ 2026.04.27
 teamSize: 4

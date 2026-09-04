@@ -660,22 +660,18 @@ table.opt td.pick {
 }
 .profile-titlerow {
   display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px;
-  align-items: center; margin: 0 0 16px;
+  align-items: center; margin: 0 0 18px;
 }
-/* 원형이 아니라 둥근 사각형이다. 증명사진은 세로(5:7)라 원형 마스크에 넣으면
-   contain 으로 맞춰도 원의 곡선이 위아래를 잘라낸다(원 안에 들어가는 정사각형은
-   지름의 0.7배뿐). 사각형이면 사진 전체가 온전히 들어가고, 남는 좌우는 흰 배경으로
-   채워 증명사진의 흰 배경과 자연스럽게 이어진다. */
+/* 증명사진 비율(5:7) 그대로의 세로 프레임. 원본이 100x140 이고 아래쪽에서 어깨가
+   잘린 상태라, 정사각형에 contain 으로 넣으면 잘린 단면이 흰 여백과 함께 도드라진다.
+   프레임을 사진과 같은 비율로 맞추면 여백 없이 꽉 차 증명사진 액자처럼 읽힌다.
+   (고해상도 원본을 넣으면 크기를 키울 수 있다.) */
 .profile-photo {
-  width: 64px; height: 64px; overflow: hidden; display: grid; place-items: center;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--slate);
-  color: #fff; font-family: var(--font-ui); font-size: 24px; font-weight: 600;
+  width: 64px; height: 90px; overflow: hidden; display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--slate);
+  color: #fff; font-family: var(--font-ui); font-size: 26px; font-weight: 600;
 }
-.profile-photo img {
-  width: 100%; height: 100%;
-  object-fit: contain;   /* 잘라내지 않고 전체를 담는다 */
-  background: #fff;      /* contain 으로 생기는 여백 */
-}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
 .profile-title { min-width: 0; }
 .profile-title h1 { margin: 0; }
 .profile-headline {
@@ -729,7 +725,7 @@ table.opt td.pick {
 @media (max-width: 560px) {
   .profile-header { padding: 22px 20px; }
   .profile-titlerow { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
-  .profile-photo { width: 52px; height: 52px; border-radius: 10px; font-size: 20px; }
+  .profile-photo { width: 52px; height: 73px; border-radius: 8px; font-size: 21px; }
   .profile-title h1 { font-size: 27px; }
   .profile-stats { grid-template-columns: 1fr; gap: 10px; }
   .profile-stats > div, .profile-stats > div:first-child {

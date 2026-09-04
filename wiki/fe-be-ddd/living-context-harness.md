@@ -42,6 +42,6 @@ AI는 도메인에 들어올 때 항상 최신 `현재 상태 요약`(누적 학
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | feat(templates): 기획 골격 템플릿 + 일지 하네스 스니펫 | https://github.com/sangwook88/Project_DDD/commit/b63d9db |
-| commit | docs: README/규약 수직 도메인 재편 + 일지 하네스 갱신 | https://github.com/sangwook88/Project_DDD/commit/0ee6d63 |
+| commit | feat(templates): 기획 골격 템플릿 + 일지 하네스 스니펫 | https://github.com/sangwook88/Project_DDD/commit/63c1452 |
+| commit | docs: README/규약 수직 도메인 재편 + 일지 하네스 갱신 | https://github.com/sangwook88/Project_DDD/commit/a8a030c |
 | 참고 | LLM Wiki | — |

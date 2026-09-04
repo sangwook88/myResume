@@ -44,5 +44,5 @@ repomap의 세 요소(의존 그래프·중요도 랭킹·예산 골격화) 중 
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | feat(context-pack): repomap식 컨텍스트 팩 + Tier B 코드 골격 | https://github.com/sangwook88/Project_DDD/commit/a8c848a |
-| commit | feat(dev): 구현 시작 컨텍스트를 context-pack으로 배선 | https://github.com/sangwook88/Project_DDD/commit/16adc3c |
+| commit | feat(context-pack): repomap식 컨텍스트 팩 + Tier B 코드 골격 | https://github.com/sangwook88/Project_DDD/commit/df98ce8 |
+| commit | feat(dev): 구현 시작 컨텍스트를 context-pack으로 배선 | https://github.com/sangwook88/Project_DDD/commit/bd8662d |

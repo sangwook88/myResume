@@ -1,7 +1,7 @@
 ---
 name: 김상욱
 headline: AI를 도구로 쓰되, 구조는 직접 통제하는 앱 개발자
-photo: ''
+photo: /api/profile/assets/kim-sangwook.jpg
 github: ''
 phone: ''
 email: ojeun88@gmail.com

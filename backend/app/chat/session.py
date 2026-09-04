@@ -68,22 +68,38 @@ class SessionStore:
         return f"{_KEY_PREFIX}{session_id}"
 
     def load(self, session_id: str) -> Session | None:
-        """세션 로드. 없거나 만료면 None. 존재하면 TTL 을 갱신(sliding)한다."""
+        """세션 로드. 없거나 만료면 None. 존재하면 TTL 을 갱신(sliding)한다.
+
+        Redis 장애·손상 세션은 삼켜 None(=새 세션)으로 폴백한다 — list_sessions 와
+        같은 가용성 우선 정책. load 는 **답변 스트림 제너레이터 안에서** 호출되므로
+        여기서 예외가 나가면 SSE 가 중간에 끊겨 답변 자체가 실패한다. 이력을 잃더라도
+        답변은 계속하는 편이 낫다(멀티턴 기억만 없는 단발 대화로 degrade).
+        """
         key = self._key(session_id)
-        raw = self.client.get(key)
-        if raw is None:
+        try:
+            raw = self.client.get(key)
+            if raw is None:
+                return None
+            self.client.expire(key, self._ttl)  # 로드도 활동 → sliding 갱신
+            return Session.model_validate_json(raw)
+        except Exception as exc:  # noqa: BLE001 — Redis 장애/손상은 새 세션으로 폴백
+            # Redis 미가용은 **예상 가능한 운영 상태**(예: 서버리스에서 캐시 미연결)다.
+            # 매 요청마다 트레이스백을 쏟으면 로그가 무의미해지고 스트리밍 응답의
+            # 지연·백프레셔 원인이 되므로 한 줄 경고로 줄인다.
+            logger.warning("세션 로드 실패(%s) — 새 세션으로 폴백.", type(exc).__name__)
             return None
-        self.client.expire(key, self._ttl)  # 로드도 활동 → sliding 갱신
-        return Session.model_validate_json(raw)
 
     def save(self, session: Session) -> None:
         """세션 통째 저장 + TTL(1일) 설정. expires_at 은 마지막 활동 + TTL 로 기록."""
         session.expires_at = _iso(_now() + timedelta(seconds=self._ttl))
-        self.client.set(
-            self._key(session.session_id),
-            session.model_dump_json(by_alias=True),
-            ex=self._ttl,
-        )
+        try:
+            self.client.set(
+                self._key(session.session_id),
+                session.model_dump_json(by_alias=True),
+                ex=self._ttl,
+            )
+        except Exception as exc:  # noqa: BLE001 — 저장 실패해도 답변은 이미 나갔다
+            logger.warning("세션 저장 실패(%s) — 이번 턴은 기억되지 않음.", type(exc).__name__)
 
     def get_or_create(self, session_id: str, context: str | None) -> Session:
         """세션 로드, 없으면 새로 생성(createdAt·expiresAt 설정). 저장은 하지 않는다."""

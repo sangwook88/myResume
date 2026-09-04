@@ -85,8 +85,8 @@ class ChatGuard:
         try:
             self.client.set(_BAN.format(ip=ip), reason, ex=BAN_SECONDS)
             logger.warning("chat guard: IP %s 일시 밴(%s, %ss)", ip, reason, BAN_SECONDS)
-        except Exception:  # noqa: BLE001
-            logger.exception("밴 기록 실패")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("밴 기록 실패(%s)", type(exc).__name__)
 
     def evaluate(self, ip: str, question: str) -> Decision:
         """LLM 호출 전 검사. 차단이면 allowed=False + 사용자 메시지를 담아 반환한다."""
@@ -150,8 +150,9 @@ class ChatGuard:
                     "같은 질문을 반복해 일시적으로 차단되었습니다. 잠시 후 다시 시도해 주세요.",
                     retry_after=BAN_SECONDS,
                 )
-        except Exception:  # noqa: BLE001 — Redis 장애는 허용(가용성 우선). 폭주는 로그로 추적.
-            logger.exception("레이트리밋 검사 실패 — 허용(fail-open).")
+        except Exception as exc:  # noqa: BLE001 — Redis 장애는 허용(가용성 우선)
+            # Redis 미가용은 예상 가능한 운영 상태다. 매 요청 트레이스백 대신 한 줄 경고.
+            logger.warning("레이트리밋 검사 실패(%s) — 허용(fail-open).", type(exc).__name__)
             return _OK
 
         return _OK
@@ -170,8 +171,8 @@ class ChatGuard:
                 self.client.expire(key, 86400)
             if n >= OFFTOPIC_LIMIT:
                 self._ban(ip, "offtopic")
-        except Exception:  # noqa: BLE001
-            logger.exception("오프토픽 카운트 실패 — 무시(가용성 우선).")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("오프토픽 카운트 실패(%s) — 무시.", type(exc).__name__)
 
     def log_question(
         self, ip: str, session_id: str, context: str | None, question: str, mode: str
@@ -197,8 +198,8 @@ class ChatGuard:
             # (저빈도) 멤버를 잘라 상위 QFREQ_CAP 개만 유지(메모리 상한). 상한 미만이면 no-op.
             pipe.zremrangebyrank(_QFREQ, 0, -QFREQ_CAP - 1)
             pipe.execute()
-        except Exception:  # noqa: BLE001
-            logger.exception("질문 로깅 실패 — 무시(가용성 우선).")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("질문 로깅 실패(%s) — 무시.", type(exc).__name__)
 
     def recent(self, limit: int = 100) -> list[dict]:
         """최근 질문 레코드(신규순). 관리자 조회용."""

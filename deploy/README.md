@@ -61,7 +61,7 @@ GitHub 이고, 호스트엔 배포 시점에만 `.env` 로 써진다.
 
 ### 1) 배포 호스트 사전 준비 (1회)
 - Docker + Docker Compose v2 설치, 80·443 개방
-- 포크 레포를 클론(예: `git clone https://github.com/sangwook88/Grounded-Resume.git ~/Project_PO`), `main` 추적
+- 포크 레포를 클론(예: `git clone https://github.com/sangwook88/myResume.git ~/Project_PO`), `main` 추적
 - Actions 러너가 접속할 SSH 공개키를 호스트 `~/.ssh/authorized_keys` 에 등록
 
 ### 2) GitHub → Settings → Secrets and variables → Actions

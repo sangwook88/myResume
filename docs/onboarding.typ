@@ -136,7 +136,7 @@ _"코드를 짜서 화면에 뭔가를 그리고, 데이터를 다루고, 이벤
 이미 이 저장소를 클론했다면 생략. 아니라면:
 
 ```powershell
-git clone https://github.com/sangwook88/Grounded-Resume.git
+git clone https://github.com/sangwook88/myResume.git
 cd Project_PO
 git checkout feat/v1-implementation   # 현재 구현 브랜치
 ```

@@ -1,6 +1,6 @@
 ---
-name: Grounded-Resume (근거기반 이력서)
-summary: 커밋·PR로 검증되는 근거기반 포트폴리오 — 채용자가 위키를 둘러보고 챗봇에 근거로 묻는다. 콘텐츠는 DB 없이 git 마크다운.
+name: 물어보는 이력서 (Grounded-Resume)
+summary: 채용담당자가 포트폴리오를 둘러보다 궁금한 점을 챗봇에 물으면 실제 커밋·PR을 짚어 답하는 이력서 사이트. 콘텐츠는 DB 없이 git 마크다운.
 role: 1인 기획·설계·구현
 period: 2026.06 ~ 2026.07
 teamSize: 1

@@ -1,7 +1,7 @@
 ---
 id: publish-gate-evidence
 title: "발행 게이트: 근거 없이는 published 불가"
-project: evidence-portfolio
+project: grounded-resume
 status: published
 tags: [설계결정, be]
 commits: [d8df3ed, c7f0989]
@@ -39,5 +39,5 @@ draft → published 승격에 게이트를 건다. 검증 = Evidence ≥ 1개 AN
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | [Feat] be/point — 포인트 조회 API·발행 게이트 | https://github.com/lsc892/Project_PO/commit/d8df3ed |
-| commit | [Docs] arch 확정 — 발행 게이트 미충족→거부 규약 | https://github.com/lsc892/Project_PO/commit/c7f0989 |
+| commit | [Feat] be/point — 포인트 조회 API·발행 게이트 | https://github.com/sangwook88/Grounded-Resume/commit/d8df3ed |
+| commit | [Docs] arch 확정 — 발행 게이트 미충족→거부 규약 | https://github.com/sangwook88/Grounded-Resume/commit/c7f0989 |

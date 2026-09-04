@@ -2,7 +2,7 @@
 id: living-context-harness
 title: "도메인마다 '누적 학습' 요약을 살려두고 개발이 끝나면 갱신을 강제 — AI 레거시 문서 환각 차단"
 project: fe-be-ddd
-status: draft
+status: published
 tags: [featured, LLM위키, 컨텍스트엔지니어링]
 commits: [b63d9db, 0ee6d63]
 updated: 2026-07-13

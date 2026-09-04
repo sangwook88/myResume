@@ -2,7 +2,7 @@
 id: context-pack
 title: "책임 도메인에 바로 도달해 코드·참조를 이름만 긁어 요약 — AI가 '어디를 어떻게' 즉시 안다"
 project: fe-be-ddd
-status: draft
+status: published
 tags: [featured, 컨텍스트엔지니어링, 도구]
 commits: [a8c848a, 16adc3c]
 updated: 2026-07-13

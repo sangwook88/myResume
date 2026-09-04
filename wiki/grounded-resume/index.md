@@ -1,5 +1,5 @@
 ---
-name: 근거기반 포트폴리오 (Project_PO)
+name: Grounded-Resume (근거기반 이력서)
 summary: 커밋·PR로 검증되는 근거기반 포트폴리오 — 채용자가 위키를 둘러보고 챗봇에 근거로 묻는다. 콘텐츠는 DB 없이 git 마크다운.
 role: 1인 기획·설계·구현
 period: 2026.06 ~ 2026.07

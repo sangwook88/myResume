@@ -1,7 +1,7 @@
 ---
 id: content-store-git-md
 title: "콘텐츠 저장소: 관계형 DB 대신 git 마크다운"
-project: evidence-portfolio
+project: grounded-resume
 status: published
 tags: [featured, 설계결정, 아키텍처]
 commits: [2e1024f, c7f0989]
@@ -40,5 +40,5 @@ updated: 2026-07-03
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | [Docs] v1 스코프 재확정: 수동 저작+근거 강제+load-all 챗봇 | https://github.com/lsc892/Project_PO/commit/2e1024f |
-| commit | [Docs] arch 확정 — 저장소=Redis+git 마크다운, 관계형 DB 없음 | https://github.com/lsc892/Project_PO/commit/c7f0989 |
+| commit | [Docs] v1 스코프 재확정: 수동 저작+근거 강제+load-all 챗봇 | https://github.com/sangwook88/Grounded-Resume/commit/2e1024f |
+| commit | [Docs] arch 확정 — 저장소=Redis+git 마크다운, 관계형 DB 없음 | https://github.com/sangwook88/Grounded-Resume/commit/c7f0989 |

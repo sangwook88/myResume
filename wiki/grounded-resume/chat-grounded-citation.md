@@ -1,7 +1,7 @@
 ---
 id: chat-grounded-citation
 title: "근거기반 챗봇: Evidence 인용 + 환각 거부"
-project: evidence-portfolio
+project: grounded-resume
 status: published
 tags: [featured, 기술구현, 챗봇]
 commits: [4a2e075]
@@ -38,4 +38,4 @@ updated: 2026-07-04
 ## Evidence
 | 종류 | 라벨 | 링크 |
 |---|---|---|
-| commit | [Feat] be/chat — load-all 답변생성·세션·제안질문(인용·거부·SSE·캐싱) | https://github.com/lsc892/Project_PO/commit/4a2e075 |
+| commit | [Feat] be/chat — load-all 답변생성·세션·제안질문(인용·거부·SSE·캐싱) | https://github.com/sangwook88/Grounded-Resume/commit/4a2e075 |

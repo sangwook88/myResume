@@ -48,7 +48,19 @@ def _default_client():
     import redis  # noqa: PLC0415 (의도적 지연 임포트)
 
     url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-    return redis.Redis.from_url(url, decode_responses=True)
+    # 타임아웃은 **서버리스에서 필수**다. 지정하지 않으면 redis-py 는 무한정 기다리는데,
+    # Redis 가 느리거나 연결이 막히면 요청이 그 자리에서 멈춘 채 Lambda 슬롯을 함수
+    # 타임아웃까지 붙잡는다. 그게 쌓이면 계정 동시 실행 한도를 채워
+    # ConcurrentInvocationLimitExceeded 로 **서비스 전체가 죽는다**(실제로 겪음).
+    # 짧은 타임아웃을 두면 예외가 나고, load/save 의 fail-open 이 받아 답변은 계속된다
+    # — 멈추면 예외가 안 나서 fail-open 이 아예 동작하지 못한다.
+    return redis.Redis.from_url(
+        url,
+        decode_responses=True,
+        socket_connect_timeout=float(os.environ.get("REDIS_CONNECT_TIMEOUT", "2")),
+        socket_timeout=float(os.environ.get("REDIS_TIMEOUT", "2")),
+        retry_on_timeout=False,
+    )
 
 
 class SessionStore:

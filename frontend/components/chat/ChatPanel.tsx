@@ -12,7 +12,7 @@ import MessageList, { type ChatMessage } from './MessageList';
 import Composer from './Composer';
 
 const EMPTY_HINT =
-  '이 포트폴리오에 대해 무엇이든 물어보세요. 답변에는 근거(커밋·PR·Swagger)가 함께 표시됩니다.';
+  '이 포트폴리오에 대해 무엇이든 물어보세요. 답변에는 출처(커밋·PR·Swagger)가 함께 표시됩니다.';
 
 /** 대화 목록에 보일 활동 시각: 오늘이면 HH:MM, 아니면 M/D. */
 function formatWhen(ts: number): string {

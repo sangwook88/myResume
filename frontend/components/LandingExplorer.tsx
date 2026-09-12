@@ -159,7 +159,7 @@ export default function LandingExplorer({
 
         <div className="rail-card">
           <div className="rail-chat-head">
-            <span className="t">근거로 답하는 챗봇</span>
+            <span className="t">출처로 답하는 챗봇</span>
           </div>
           <div className="rail-chat-sub">포트폴리오 전반에 대해 물어보세요.</div>
           <div className="rail-chips">

@@ -9,11 +9,11 @@ import './globals.css';
 import './portfolio.css';
 
 export const metadata: Metadata = {
-  title: '근거기반 포트폴리오',
-  description: '결정마다 커밋·PR·Swagger로 검증 가능한 포트폴리오',
+  title: '물어보는 이력서',
+  description: '궁금한 점을 챗봇에 물으면 실제 커밋·PR을 짚어 답하는 이력서',
   openGraph: {
-    title: '근거기반 포트폴리오',
-    description: '결정마다 커밋·PR·Swagger로 검증 가능한 포트폴리오',
+    title: '물어보는 이력서',
+    description: '궁금한 점을 챗봇에 물으면 실제 커밋·PR을 짚어 답하는 이력서',
     type: 'website',
   },
 };
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* 본문 셸 — 챗봇 도크가 열리면(body.chat-docked) 오른쪽으로 밀려 왼쪽으로 이동한다. */}
         <div className="app-shell">
           <header className="brandbar">
-            <Link className="brand" href="/">근거기반 포트폴리오</Link>
+            <Link className="brand" href="/">물어보는 이력서</Link>
             <nav className="brandnav" aria-label="주요 이동">
               <Link href="/">Projects</Link>
             </nav>

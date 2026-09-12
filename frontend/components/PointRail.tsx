@@ -80,7 +80,7 @@ export default function PointRail({ sections }: { sections: RailSection[] }) {
 
         <div className="rail-card">
           <div className="rail-chat-head">
-            <span className="t">근거로 답하는 챗봇</span>
+            <span className="t">출처로 답하는 챗봇</span>
             {activeLabel && <span className="ctx">{activeLabel}</span>}
           </div>
           <div className="rail-chat-sub">지금 읽는 섹션에 맞춰 물어볼 거리를 제안해요.</div>
